@@ -1,1 +1,626 @@
-/* Стили игрового экрана */
+/* ---------- игровой экран ---------- */
+
+.game {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  transition: background 0.4s;
+}
+
+.game.is-night {
+  --bg: #050609;
+  --surface: #0b0d12;
+  --surface-2: #12151c;
+  --surface-3: #1a1e27;
+  --border: #222734;
+  --text: #c9ccd4;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.topbar-title {
+  font-size: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.icon-btn.is-on {
+  border-color: var(--warn);
+}
+
+.finish-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.finish-bar .is-armed {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.game-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.table-wrap {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  display: flex;
+}
+
+.panel {
+  width: 380px;
+  flex: none;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .game-body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .table-wrap {
+    min-height: 560px;
+  }
+  .panel {
+    width: auto;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    overflow: visible;
+  }
+}
+
+.panel-inner {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.phase-title {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.phase-prompt {
+  margin-top: 6px;
+  font-size: 17px;
+  color: var(--muted);
+}
+
+.phase-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hint {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.hint.warn {
+  color: var(--warn);
+}
+
+.candidates-line {
+  font-weight: 600;
+}
+
+/* ---------- стол ---------- */
+
+.table {
+  position: relative;
+  flex: 1;
+  min-height: 520px;
+}
+
+.table-oval {
+  position: absolute;
+  inset: 17% 15%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #1d3a2c 0%, #142a20 70%, #10221a 100%);
+  border: 6px solid #2a1d14;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+}
+
+.is-night .table-oval {
+  background: radial-gradient(ellipse at center, #0f1a15 0%, #0a1410 100%);
+  border-color: #17100b;
+}
+
+.table-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.table-day {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.table-alive {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.team-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.team-dot.red {
+  background: var(--red-team);
+}
+
+.team-dot.black {
+  background: var(--black-team);
+  border: 2px solid var(--black-team-border);
+  margin-left: 10px;
+}
+
+.table-candidates-list {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--warn);
+}
+
+/* ---------- место ---------- */
+
+.seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: clamp(118px, 13vw, 160px);
+  min-height: 100px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface-2);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    opacity 0.15s;
+}
+
+.seat[data-team='red'] {
+  background: linear-gradient(180deg, var(--red-team-soft), var(--surface-2) 60%);
+}
+
+.seat[data-team='black'] {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), var(--surface-2) 70%);
+}
+
+.seat.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(79, 140, 255, 0.35);
+}
+
+.seat.is-candidate {
+  border-color: var(--warn);
+}
+
+.seat.is-selected {
+  border-color: #fff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.4);
+}
+
+.seat.is-out {
+  opacity: 0.45;
+}
+
+.seat.is-disabled {
+  opacity: 0.25;
+}
+
+.seat-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seat-number {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.seat-role {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.role-civilian {
+  color: var(--red-team);
+  border: 1px solid var(--red-team);
+}
+
+.role-sheriff {
+  background: var(--red-team);
+  color: #fff;
+}
+
+.role-mafia {
+  background: var(--black-team);
+  border: 1px solid var(--black-team-border);
+  color: #fff;
+}
+
+.role-don {
+  background: var(--black-team);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+}
+
+.seat-nick {
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seat-bottom,
+.seat-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.fouls {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: 2px;
+}
+
+.fouls i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+}
+
+.fouls i.on {
+  background: var(--warn);
+  border-color: var(--warn);
+}
+
+.fouls i.hot {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  white-space: nowrap;
+}
+
+.chip-accent {
+  background: var(--warn);
+  color: #1a1300;
+}
+
+.chip-warn {
+  background: transparent;
+  border: 1px solid var(--warn);
+  color: var(--warn);
+}
+
+.chip-red {
+  background: var(--red-team);
+  color: #fff;
+}
+
+.chip-black {
+  background: var(--black-team);
+  border: 1px solid var(--black-team-border);
+  color: #fff;
+}
+
+.seat-status {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* ---------- таймер ---------- */
+
+.timer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timer-face {
+  border: 2px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timer-digits {
+  font-size: 76px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.timer-hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.timer.is-running .timer-face {
+  border-color: var(--accent);
+}
+
+.timer.is-warn .timer-digits {
+  color: var(--warn);
+}
+
+.timer.is-over .timer-face {
+  border-color: var(--danger);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.timer.is-over .timer-digits {
+  color: var(--danger);
+}
+
+@keyframes pulse {
+  50% {
+    background: rgba(239, 91, 91, 0.18);
+  }
+}
+
+.timer-controls {
+  display: grid;
+  grid-template-columns: 1.3fr 1.1fr 1fr;
+  gap: 8px;
+}
+
+.timer-controls .btn {
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+/* ---------- голосование ---------- */
+
+.vote {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vote-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vote-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  background: var(--surface-2);
+  text-align: left;
+}
+
+.vote-row.is-active {
+  border-color: var(--accent);
+}
+
+.vote-row.is-auto {
+  opacity: 0.85;
+  cursor: default;
+}
+
+.vote-seat {
+  font-size: 22px;
+  font-weight: 800;
+  width: 56px;
+}
+
+.vote-by {
+  flex: 1;
+  font-size: 13px;
+}
+
+.vote-value {
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.vote-auto {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.vote-summary {
+  font-size: 15px;
+}
+
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.numpad-btn {
+  height: 52px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.numpad-btn.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.numpad-btn:disabled {
+  opacity: 0.25;
+}
+
+/* ---------- ночь ---------- */
+
+.check-result {
+  font-size: 34px;
+  font-weight: 900;
+  text-align: center;
+  padding: 18px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+}
+
+.check-result.is-positive {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.finished-banner {
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface-2);
+}
+
+.finished-banner[data-team='red'] {
+  border-color: var(--red-team);
+}
+
+.finished-banner[data-team='black'] {
+  border-color: var(--black-team-border);
+}
+
+.finished-winner {
+  font-size: 26px;
+  font-weight: 900;
+}
+
+/* ---------- меню места ---------- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  z-index: 20;
+  padding: 16px;
+}
+
+.sheet {
+  width: min(440px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.seat-num.big {
+  width: 56px;
+  height: 56px;
+  font-size: 26px;
+}
+
+.sheet-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-sub {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* ---------- уведомление ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  background: var(--danger);
+  color: #fff;
+  padding: 14px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  z-index: 30;
+  max-width: calc(100% - 32px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
