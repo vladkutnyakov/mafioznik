@@ -758,3 +758,40 @@
   color: var(--muted);
   font-size: 14px;
 }
+
+/* ---------- кандидаты и снятие выставления ---------- */
+
+.btn-warn {
+  border-color: var(--warn);
+  color: var(--warn);
+  background: transparent;
+}
+
+.candidate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.candidate-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.candidate-chip-x {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: 14px;
+}

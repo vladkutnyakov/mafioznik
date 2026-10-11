@@ -69,6 +69,33 @@ describe('речи и выставления', () => {
     expect(s.nominations).toEqual([{ day: 1, by: 1, target: 5 }]);
   });
 
+  it('снятое выставление освобождает выставление текущего игрока', () => {
+    const cancel: GameEvent = { type: 'cancelNomination', target: 5 };
+    const s = replay(setup(), [...toDay1, nominate(5), cancel, nominate(6)]);
+    expect(s.nominations).toEqual([{ day: 1, by: 1, target: 6 }]);
+  });
+
+  it('снять можно и выставление прошлого игрока, пока идут речи', () => {
+    const s = replay(setup(), [...toDay1, nominate(5), ...adv(3), { type: 'cancelNomination', target: 5 }]);
+    expect(s.nominations).toEqual([]);
+    expect(s.phase).toEqual({ kind: 'speech', seat: 4, shortened: false });
+  });
+
+  it('снятие на голосовании пересчитывает голосование', () => {
+    const toVote: GameEvent[] = [...toDay1, nominate(2), ...adv(), nominate(3), ...adv(), nominate(5), ...adv(8)];
+    let s = replay(setup(), [...toVote, { type: 'cancelNomination', target: 3 }]);
+    expect(s.phase).toEqual({ kind: 'voting', round: 'main', candidates: [2, 5] });
+    // В День 1 остаётся один кандидат: голосования нет, наступает ночь.
+    s = replay(setup(), [...toVote, { type: 'cancelNomination', target: 3 }, { type: 'cancelNomination', target: 5 }]);
+    expect(s.phase).toEqual({ kind: 'night', step: 'shoot' });
+  });
+
+  it('не снимает невыставленного и не снимает после начала голосования', () => {
+    expect(() => replay(setup(), [...toDay1, { type: 'cancelNomination', target: 5 }])).toThrow('не выставлен');
+    const toRevote: GameEvent[] = [...toDay1, nominate(2), ...adv(), nominate(3), ...adv(9), vote(5), ...adv(2)];
+    expect(() => replay(setup(), [...toRevote, { type: 'cancelNomination', target: 2 }])).toThrow('до начала голосования');
+  });
+
   it('в День 1 при одной кандидатуре голосования нет', () => {
     const s = replay(setup(), [...toDay1, nominate(5), ...adv(10)]);
     expect(s.phase).toEqual({ kind: 'night', step: 'shoot' });

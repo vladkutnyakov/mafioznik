@@ -40,6 +40,8 @@ export function SeatMenu({ state, seat, hideRoles, dispatch, onClose }: Props) {
   const p = state.phase;
   const alive = isAlive(s);
   const blocker = nominateBlocker(state, seat);
+  const nomination = state.nominations.find((n) => n.day === state.day && n.target === seat);
+  const canCancel = nomination !== undefined && (p.kind === 'speech' || (p.kind === 'voting' && p.round === 'main'));
   const act = (event: GameEvent) => {
     if (dispatch(event)) onClose();
   };
@@ -64,7 +66,14 @@ export function SeatMenu({ state, seat, hideRoles, dispatch, onClose }: Props) {
         </div>
 
         <div className="sheet-actions">
-          {p.kind === 'speech' && alive && (
+          {canCancel && (
+            <button className="btn btn-lg btn-block btn-warn" onClick={() => act({ type: 'cancelNomination', target: seat })}>
+              Снять выставление №{seat}
+              <span className="btn-sub">выставил №{nomination.by}</span>
+            </button>
+          )}
+
+          {p.kind === 'speech' && alive && !canCancel && (
             <div>
               <button
                 className="btn btn-primary btn-lg btn-block"

@@ -221,6 +221,8 @@ export interface GameState {
 export type GameEvent =
   | { type: 'advance' }
   | { type: 'nominate'; target: number }
+  /** Снять ошибочное выставление: во время речей или до ввода голосов основного голосования. */
+  | { type: 'cancelNomination'; target: number }
   /** Голоса по кандидатам в порядке выставления. Можно не указывать последнего: ему уйдут оставшиеся голоса. */
   | { type: 'vote'; votes: number[] }
   | { type: 'liftAllVote'; votesFor: number }

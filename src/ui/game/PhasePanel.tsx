@@ -64,9 +64,26 @@ export function PhasePanel({ state, phaseKey, selected, setSelected, dispatch, h
         return (
           <>
             <div className="hint">Чтобы выставить кандидатуру или дать фол, нажмите на место игрока.</div>
-            <div className="candidates-line">
-              {candidates.length ? `На голосовании: ${candidates.map((c) => `№${c}`).join(', ')}` : 'Кандидатур пока нет'}
-            </div>
+            {candidates.length ? (
+              <div className="candidate-chips">
+                <span className="candidates-line">На голосовании:</span>
+                {candidates.map((c) => (
+                  <span key={c} className="candidate-chip">
+                    №{c}
+                    <button
+                      className="candidate-chip-x"
+                      onClick={() => dispatch({ type: 'cancelNomination', target: c })}
+                      aria-label={`Снять выставление №${c}`}
+                      title="Снять выставление"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="candidates-line">Кандидатур пока нет</div>
+            )}
             <button className="btn btn-primary btn-lg btn-block" onClick={advance}>
               Следующий игрок →
             </button>

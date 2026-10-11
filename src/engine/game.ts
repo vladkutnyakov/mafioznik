@@ -112,6 +112,9 @@ export function applyEvent(prev: GameState, event: GameEvent): GameState {
     case 'nominate':
       onNominate(s, event.target);
       break;
+    case 'cancelNomination':
+      onCancelNomination(s, event.target);
+      break;
     case 'vote':
       onVote(s, event.votes);
       break;
@@ -210,6 +213,21 @@ function onNominate(s: GameState, target: number): void {
   if (currentCandidates(s).includes(target)) fail(`Игрок №${target} уже выставлен.`);
   if (nominatedBy(s, p.seat).length >= reg.perSpeech) fail(`Игрок №${p.seat} уже выставил кандидатуру.`);
   s.nominations.push({ day: s.day, by: p.seat, target });
+}
+
+function onCancelNomination(s: GameState, target: number): void {
+  const p = s.phase;
+  const allowed = p.kind === 'speech' || (p.kind === 'voting' && p.round === 'main');
+  if (!allowed) fail('Снять выставление можно только во время речей или до начала голосования.');
+  checkSeatNumber(target);
+  const idx = s.nominations.findIndex((n) => n.day === s.day && n.target === target);
+  if (idx < 0) fail(`Игрок №${target} не выставлен.`);
+  s.nominations.splice(idx, 1);
+  if (p.kind === 'voting') {
+    // Состав голосования изменился: заново решаем, нужно ли голосование.
+    s.queue = [{ kind: 'endSpeeches' }];
+    popNext(s);
+  }
 }
 
 function onVote(s: GameState, votes: number[]): void {
