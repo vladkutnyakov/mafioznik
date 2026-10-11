@@ -1,0 +1,327 @@
+:root {
+  --bg: #0e1014;
+  --surface: #171a21;
+  --surface-2: #20242e;
+  --surface-3: #2a2f3b;
+  --border: #323846;
+  --text: #eceef3;
+  --muted: #9aa1b0;
+  --accent: #4f8cff;
+  --accent-text: #ffffff;
+  --ok: #3ccf8e;
+  --warn: #f5b84b;
+  --danger: #ef5b5b;
+  --red-team: #e5484d;
+  --red-team-soft: rgba(229, 72, 77, 0.16);
+  --black-team: #050608;
+  --black-team-border: #7c8396;
+  --gold: #f5c451;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --tap: 52px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ---------- кнопки ---------- */
+
+.btn {
+  min-height: var(--tap);
+  padding: 0 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.12s, transform 0.06s;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn-danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn-danger.is-armed {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.btn-lg {
+  min-height: 64px;
+  font-size: 19px;
+  padding: 0 28px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.icon-btn {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+}
+
+/* ---------- общие ---------- */
+
+.screen {
+  min-height: 100%;
+  padding: 24px max(24px, env(safe-area-inset-right)) 32px max(24px, env(safe-area-inset-left));
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.wrap {
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* ---------- главный экран ---------- */
+
+.home {
+  display: grid;
+  place-items: center;
+}
+
+.home-inner {
+  width: min(520px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.home-title {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.resume-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  padding: 18px 20px;
+}
+
+/* ---------- рассадка ---------- */
+
+.setup-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 20px;
+}
+
+@media (max-width: 860px) {
+  .setup-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.setup-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+
+.seat-num {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 20px;
+  background: var(--surface-3);
+}
+
+.nick-input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 0 12px;
+  font-size: 17px;
+}
+
+.nick-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.role-picker {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+.role-opt {
+  height: 48px;
+  min-width: 48px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.role-opt.is-on[data-team='red'] {
+  background: var(--red-team);
+  border-color: var(--red-team);
+  color: #fff;
+}
+
+.role-opt.is-on[data-team='black'] {
+  background: var(--black-team);
+  border-color: var(--black-team-border);
+  color: #fff;
+}
+
+.counters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.counter {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.counter.is-ok {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.counter.is-bad {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.setup-foot {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.errors {
+  color: var(--warn);
+  font-size: 14px;
+  margin: 0;
+  padding-left: 18px;
+}
