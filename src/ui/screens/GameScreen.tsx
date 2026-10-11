@@ -4,6 +4,7 @@ import type { GameSession } from '../../session/session';
 import { useGameSession } from '../../session/useGameSession';
 import { ConfirmButton } from '../game/ConfirmButton';
 import { PhasePanel } from '../game/PhasePanel';
+import { ResultsView } from '../game/ResultsView';
 import { SeatMenu } from '../game/SeatMenu';
 import { Table } from '../game/Table';
 import { useWakeLock } from '../hooks/useWakeLock';
@@ -40,13 +41,14 @@ function selectionMode(state: GameState): { max: number; can: (seat: number) => 
   return null;
 }
 
-export function GameScreen({ initial, onExit }: Props) {
+export function GameScreen({ initial, onExit, onSave }: Props) {
   const game = useGameSession(initial);
   const { state } = game;
   const [hideRoles, setHideRoles] = useState(readHideRoles);
   const [menuSeat, setMenuSeat] = useState<number | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
   const [showFinish, setShowFinish] = useState(false);
+  const [showTable, setShowTable] = useState(false);
 
   useWakeLock(true);
 
@@ -55,6 +57,10 @@ export function GameScreen({ initial, onExit }: Props) {
   const isNight = state.phase.kind === 'night' || state.phase.kind === 'night0';
 
   useEffect(() => setSelected([]), [phaseKey]);
+
+  useEffect(() => {
+    if (!state.result) setShowTable(false);
+  }, [state.result]);
 
   useEffect(() => {
     try {
@@ -105,6 +111,11 @@ export function GameScreen({ initial, onExit }: Props) {
         <button className="icon-btn" onClick={game.redo} disabled={!game.canRedo} title="Вернуть">
           ↷
         </button>
+        {state.result && showTable && (
+          <button className="btn btn-primary" onClick={() => setShowTable(false)}>
+            Итоги
+          </button>
+        )}
         {!state.result && (
           <button className="btn" onClick={() => setShowFinish((v) => !v)}>
             Завершить
@@ -139,27 +150,36 @@ export function GameScreen({ initial, onExit }: Props) {
         </div>
       )}
 
-      <div className="game-body">
-        <section className="table-wrap">
-          <Table
-            state={state}
-            hideRoles={hideRoles}
-            selected={selected}
-            selectable={mode ? mode.can : null}
-            onSeatTap={onSeatTap}
-          />
-        </section>
-        <aside className="panel">
-          <PhasePanel
-            state={state}
-            phaseKey={phaseKey}
-            selected={selected}
-            setSelected={setSelected}
-            dispatch={game.dispatch}
-            hideRoles={hideRoles}
-          />
-        </aside>
-      </div>
+      {state.result && !showTable ? (
+        <ResultsView
+          state={state}
+          dispatch={game.dispatch}
+          onSave={() => onSave(game.session)}
+          onShowTable={() => setShowTable(true)}
+        />
+      ) : (
+        <div className="game-body">
+          <section className="table-wrap">
+            <Table
+              state={state}
+              hideRoles={hideRoles}
+              selected={selected}
+              selectable={mode ? mode.can : null}
+              onSeatTap={onSeatTap}
+            />
+          </section>
+          <aside className="panel">
+            <PhasePanel
+              state={state}
+              phaseKey={phaseKey}
+              selected={selected}
+              setSelected={setSelected}
+              dispatch={game.dispatch}
+              hideRoles={hideRoles}
+            />
+          </aside>
+        </div>
+      )}
 
       {menuSeat !== null && (
         <SeatMenu
