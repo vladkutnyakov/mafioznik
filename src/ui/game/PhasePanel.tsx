@@ -3,6 +3,7 @@ import {
   FINISH_REASON_NAMES,
   currentCandidates,
   describePhase,
+  nightCheckerActive,
   phaseDuration,
   seatOf,
   teamOf,
@@ -117,6 +118,19 @@ export function PhasePanel({ state, phaseKey, selected, setSelected, dispatch, h
           );
         }
         const isDon = p.step === 'donCheck';
+        if (!nightCheckerActive(state, p.step)) {
+          return (
+            <>
+              <div className="check-result is-muted">{isDon ? 'Дон' : 'Шериф'} выбыл</div>
+              <div className="hint">
+                Объявите фазу как обычно и выдержите паузу по таймеру, чтобы игроки не догадались. Проверки нет.
+              </div>
+              <button className="btn btn-primary btn-lg btn-block" onClick={advance}>
+                Дальше →
+              </button>
+            </>
+          );
+        }
         const result =
           target === undefined
             ? null

@@ -76,6 +76,15 @@ export function pendingResult(s: GameState): GameResult | null {
   return null;
 }
 
+/**
+ * Может ли дон или шериф проверять в текущую ночь.
+ * Фаза проверки идёт в любом случае, чтобы игроки не поняли, что роль выбыла.
+ */
+export function nightCheckerActive(s: GameState, step: 'donCheck' | 'sheriffCheck'): boolean {
+  const seat = seatWithRole(s, step === 'donCheck' ? 'don' : 'sheriff');
+  return seat !== undefined && actsTonight(s, seat);
+}
+
 export function isDayPhase(phase: Phase): boolean {
   switch (phase.kind) {
     case 'speech':

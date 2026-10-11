@@ -130,8 +130,9 @@ describe('полная игра: победа мирных', () => {
     ...adv(7),
     vote(6), // №6 — 6 голосов, №8 — 2
     ...adv(), // прощальная речь №6 → ночь
-    // Ночь 2: промах. Дон и шериф выбыли, их проверки пропускаются.
+    // Ночь 2: промах. Дон и шериф выбыли, но их фазы проходят без проверок.
     shoot(null),
+    ...adv(2), // фаза дона → фаза шерифа → утро
     ...adv(), // утро → День 3
     // День 3 открывает №5: единственная кандидатура №8 уходит без голосования.
     nominate(8),
@@ -179,10 +180,19 @@ describe('полная игра: победа мирных', () => {
     expect(s.dayOpener).toBe(5);
   });
 
-  it('пропускает проверки выбывших дона и шерифа', () => {
+  it('оставляет фазы выбывших дона и шерифа, но без проверок', () => {
     const secondShoot = events.findIndex((e, i) => i > 17 && e.type === 'shoot');
-    const s = replay(setup(), events.slice(0, secondShoot + 1));
+    const upToShoot = events.slice(0, secondShoot + 1);
+    let s = replay(setup(), upToShoot);
+    expect(s.phase).toEqual({ kind: 'night', step: 'donCheck' });
+    expect(phaseDuration(s.phase, s.regulation)).toBe(10);
+    expect(() => replay(setup(), [...upToShoot, check(1)])).toThrow('Дон выбыл');
+    s = replay(setup(), [...upToShoot, ...adv()]);
+    expect(s.phase).toEqual({ kind: 'night', step: 'sheriffCheck' });
+    expect(() => replay(setup(), [...upToShoot, ...adv(), check(1)])).toThrow('Шериф выбыл');
+    s = replay(setup(), [...upToShoot, ...adv(2)]);
     expect(s.phase).toEqual({ kind: 'morning', killed: null });
+    expect(s.nights[1]).toEqual({ night: 2, kill: null });
   });
 
   it('считает баллы с доп. баллами', () => {

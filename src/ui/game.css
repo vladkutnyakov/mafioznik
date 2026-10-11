@@ -795,3 +795,8 @@
   color: var(--text);
   font-size: 14px;
 }
+
+.check-result.is-muted {
+  font-size: 22px;
+  color: var(--muted);
+}

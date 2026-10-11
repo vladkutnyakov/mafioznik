@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { actsTonight, describePhase, isAlive, seatOf, type GameState } from '../../engine';
+import { actsTonight, describePhase, isAlive, nightCheckerActive, seatOf, type GameState } from '../../engine';
 import type { GameSession } from '../../session/session';
 import { useGameSession } from '../../session/useGameSession';
 import { ConfirmButton } from '../game/ConfirmButton';
@@ -28,11 +28,12 @@ function readHideRoles(): boolean {
 /** Режим выбора игрока на столе для текущей фазы. */
 function selectionMode(state: GameState): { max: number; can: (seat: number) => boolean } | null {
   const p = state.phase;
-  if (p.kind === 'night' && p.step === 'shoot') {
-    return { max: 1, can: (n) => isAlive(seatOf(state, n)) };
-  }
   if (p.kind === 'night') {
-    const checker = state.seats.find((s) => s.role === (p.step === 'donCheck' ? 'don' : 'sheriff'));
+    const step = p.step;
+    if (step === 'shoot') return { max: 1, can: (n) => isAlive(seatOf(state, n)) };
+    // Выбывший дон или шериф: фаза идёт для вида, выбирать некого.
+    if (!nightCheckerActive(state, step)) return null;
+    const checker = state.seats.find((s) => s.role === (step === 'donCheck' ? 'don' : 'sheriff'));
     return { max: 1, can: (n) => n !== checker?.seat && actsTonight(state, seatOf(state, n)) };
   }
   if (p.kind === 'bestMove') {

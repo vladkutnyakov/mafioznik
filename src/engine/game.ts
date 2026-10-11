@@ -7,9 +7,9 @@ import {
   currentNight,
   isAlive,
   isDayPhase,
+  nightCheckerActive,
   nominatedBy,
   seatOf,
-  seatWithRole,
   seatsFrom,
   teamOf,
 } from './selectors';
@@ -295,6 +295,9 @@ function onShoot(s: GameState, target: number | null): void {
 function onCheck(s: GameState, target: number): void {
   const p = s.phase;
   if (p.kind !== 'night' || p.step === 'shoot') phaseError(s);
+  if (!nightCheckerActive(s, p.step)) {
+    fail(`${p.step === 'donCheck' ? 'Дон' : 'Шериф'} выбыл: проверки нет, выдержите паузу.`);
+  }
   checkSeatNumber(target);
   const night = currentNight(s);
   if (!night) throw new Error('Нет записи текущей ночи.');
@@ -404,15 +407,6 @@ function popNext(s: GameState): void {
         if (seatOf(s, item.seat).status === 'removed') continue;
         s.phase = item;
         return;
-      case 'night': {
-        const role = item.step === 'donCheck' ? 'don' : item.step === 'sheriffCheck' ? 'sheriff' : null;
-        if (role) {
-          const seat = seatWithRole(s, role);
-          if (!seat || !actsTonight(s, seat)) continue;
-        }
-        s.phase = item;
-        return;
-      }
       default:
         s.phase = item;
         return;
@@ -520,11 +514,8 @@ function removePlayer(s: GameState, seatNumber: number, kind: 'removal' | 'disqu
     popNext(s);
     return;
   }
-  const ownPhase =
-    (p.kind === 'speech' && p.seat === seatNumber) ||
-    (p.kind === 'night' && p.step === 'donCheck' && seat.role === 'don') ||
-    (p.kind === 'night' && p.step === 'sheriffCheck' && seat.role === 'sheriff');
-  if (ownPhase) popNext(s);
+  // Ночные фазы дона и шерифа не пропускаются даже после удаления, чтобы не выдать роль.
+  if (p.kind === 'speech' && p.seat === seatNumber) popNext(s);
 }
 
 function checkAndFinish(s: GameState): boolean {
