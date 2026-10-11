@@ -71,7 +71,7 @@ function describeBase(s: GameState): PhaseDescription {
       };
     case 'farewell':
       return {
-        title: `${day} · Прощальная речь №${p.seat}`,
+        title: `${p.reason === 'killed' ? `Утро · день ${s.day + 1}` : day} · Прощальная речь №${p.seat}`,
         prompt: `Игрок №${p.seat}, ваша прощальная речь.`,
       };
     case 'night':

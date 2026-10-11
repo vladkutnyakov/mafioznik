@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { beepEnd, beepWarning } from '../audio/sound';
+import { onTimerCommand } from './keys';
 import { Kbd } from './PhasePanel';
 
 interface Props {
@@ -83,6 +84,20 @@ export function Timer({ duration, warningAt }: Props) {
     if (remainingRef.current + 10_000 > warningAt * 1000) warned.current = false;
   };
 
+  // Команды с клавиатуры: пробел, R, +.
+  const handlers = useRef({ toggle, reset, addTen });
+  handlers.current = { toggle, reset, addTen };
+  useEffect(
+    () =>
+      onTimerCommand((cmd) => {
+        const h = handlers.current;
+        if (cmd === 'toggle') h.toggle();
+        else if (cmd === 'reset') h.reset();
+        else h.addTen();
+      }),
+    [],
+  );
+
   const state = ended ? 'is-over' : warnEnabled && remaining <= warningAt * 1000 ? 'is-warn' : '';
   const progress = total > 0 ? Math.min(1, remaining / total) : 0;
 
@@ -106,6 +121,7 @@ export function Timer({ duration, warningAt }: Props) {
         </button>
         <button className="btn" onClick={addTen}>
           +10 с
+          <Kbd>+</Kbd>
         </button>
       </div>
     </div>

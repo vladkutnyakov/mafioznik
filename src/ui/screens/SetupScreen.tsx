@@ -153,6 +153,14 @@ export function SetupScreen({ onBack, onStart }: Props) {
               autoCapitalize="words"
               enterKeyHint="next"
               onChange={(e) => update(i, { nickname: e.target.value })}
+              onKeyDown={(e) => {
+                // Enter переводит к следующему игроку: удобно вводить состав с клавиатуры.
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                const inputs = document.querySelectorAll<HTMLInputElement>('.nick-input');
+                inputs[i + 1]?.focus();
+                if (i === inputs.length - 1) e.currentTarget.blur();
+              }}
             />
             <div className="role-picker" role="radiogroup" aria-label={`Роль места ${i + 1}`}>
               {ROLE_ORDER.map((r) => (
