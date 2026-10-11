@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { actsTonight, describePhase, isAlive, nightCheckerActive, seatOf, type GameState } from '../../engine';
+import { describePhase } from '../../engine';
 import type { GameSession } from '../../session/session';
 import { useGameSession } from '../../session/useGameSession';
 import { ConfirmButton } from '../game/ConfirmButton';
 import { PhasePanel } from '../game/PhasePanel';
+import { buildPhaseUi } from '../game/phaseUi';
 import { ResultsView } from '../game/ResultsView';
 import { SeatMenu } from '../game/SeatMenu';
 import { Table } from '../game/Table';
@@ -25,37 +26,31 @@ function readHideRoles(): boolean {
   }
 }
 
-/** Режим выбора игрока на столе для текущей фазы. */
-function selectionMode(state: GameState): { max: number; can: (seat: number) => boolean } | null {
-  const p = state.phase;
-  if (p.kind === 'night') {
-    const step = p.step;
-    if (step === 'shoot') return { max: 1, can: (n) => isAlive(seatOf(state, n)) };
-    // Выбывший дон или шериф: фаза идёт для вида, выбирать некого.
-    if (!nightCheckerActive(state, step)) return null;
-    const checker = state.seats.find((s) => s.role === (step === 'donCheck' ? 'don' : 'sheriff'));
-    return { max: 1, can: (n) => n !== checker?.seat && actsTonight(state, seatOf(state, n)) };
-  }
-  if (p.kind === 'bestMove') {
-    return { max: 3, can: (n) => n !== p.seat };
-  }
-  return null;
-}
-
 export function GameScreen({ initial, onExit, onSave }: Props) {
   const game = useGameSession(initial);
   const { state } = game;
   const [hideRoles, setHideRoles] = useState(readHideRoles);
   const [menuSeat, setMenuSeat] = useState<number | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
-  const [showFinish, setShowFinish] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showTable, setShowTable] = useState(false);
 
   useWakeLock(true);
 
   const phaseKey = `${state.day}:${JSON.stringify(state.phase)}`;
-  const mode = useMemo(() => selectionMode(state), [state]);
   const isNight = state.phase.kind === 'night' || state.phase.kind === 'night0';
+
+  const ui = useMemo(
+    () =>
+      buildPhaseUi({
+        state,
+        dispatch: game.dispatch,
+        selected,
+        setSelected,
+        onShowResults: () => setShowTable(false),
+      }),
+    [state, game.dispatch, selected],
+  );
 
   useEffect(() => setSelected([]), [phaseKey]);
 
@@ -77,79 +72,70 @@ export function GameScreen({ initial, onExit, onSave }: Props) {
     return () => window.clearTimeout(id);
   }, [game.error, game.clearError]);
 
+  const tablePicks = ui.picker?.tableSelects ? ui.picker : null;
+
   const onSeatTap = (seat: number) => {
-    if (mode) {
-      if (!mode.can(seat)) return;
-      setSelected((prev) => {
-        if (prev.includes(seat)) return prev.filter((s) => s !== seat);
-        if (mode.max === 1) return [seat];
-        return prev.length >= mode.max ? prev : [...prev, seat];
-      });
+    if (tablePicks) {
+      if (tablePicks.can(seat) || tablePicks.selected.includes(seat)) tablePicks.onPick(seat);
       return;
     }
     setMenuSeat(seat);
   };
 
+  const finish = (winner: 'red' | 'black') => {
+    game.dispatch({ type: 'finish', winner });
+    setMenuOpen(false);
+  };
+
   return (
     <div className={`game ${isNight ? 'is-night' : ''}`}>
       <header className="topbar">
-        <button className="icon-btn" onClick={onExit} aria-label="В меню" title="В меню">
-          ☰
-        </button>
+        <div className="menu-wrap">
+          <button className="btn" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}>
+            Меню
+          </button>
+          {menuOpen && (
+            <>
+              <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
+              <div className="menu" role="menu">
+                <button className="menu-item" onClick={onExit}>
+                  Выйти в главное меню
+                  <span className="menu-sub">Партия сохранится, её можно продолжить</span>
+                </button>
+                {!state.result && (
+                  <>
+                    <div className="menu-sep" />
+                    <div className="menu-label">Завершить игру решением ведущего</div>
+                    <ConfirmButton className="menu-item" confirmLabel="Нажмите ещё раз" onConfirm={() => finish('red')}>
+                      Победа мирных
+                    </ConfirmButton>
+                    <ConfirmButton className="menu-item" confirmLabel="Нажмите ещё раз" onConfirm={() => finish('black')}>
+                      Победа мафии
+                    </ConfirmButton>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
         <div className="topbar-title">{describePhase(state).title}</div>
-        <div className="spacer" />
-        <button
-          className={`icon-btn ${hideRoles ? 'is-on' : ''}`}
-          onClick={() => setHideRoles((v) => !v)}
-          title={hideRoles ? 'Показать роли' : 'Скрыть роли'}
-          aria-pressed={hideRoles}
-        >
-          {hideRoles ? '🙈' : '👁'}
+
+        <button className={`btn ${hideRoles ? 'btn-warn' : ''}`} onClick={() => setHideRoles((v) => !v)}>
+          {hideRoles ? 'Показать роли' : 'Скрыть роли'}
         </button>
-        <button className="icon-btn" onClick={game.undo} disabled={!game.canUndo} title="Отменить">
-          ↶
+        <button className="btn" onClick={game.undo} disabled={!game.canUndo}>
+          Отменить
         </button>
-        <button className="icon-btn" onClick={game.redo} disabled={!game.canRedo} title="Вернуть">
-          ↷
+        <button className="btn" onClick={game.redo} disabled={!game.canRedo}>
+          Вернуть
         </button>
         {state.result && showTable && (
           <button className="btn btn-primary" onClick={() => setShowTable(false)}>
-            Итоги
-          </button>
-        )}
-        {!state.result && (
-          <button className="btn" onClick={() => setShowFinish((v) => !v)}>
-            Завершить
+            К итогам
           </button>
         )}
       </header>
-
-      {showFinish && !state.result && (
-        <div className="finish-bar">
-          <span className="muted">Завершить игру решением ведущего:</span>
-          <ConfirmButton
-            className="btn"
-            onConfirm={() => {
-              game.dispatch({ type: 'finish', winner: 'red' });
-              setShowFinish(false);
-            }}
-          >
-            Победа мирных
-          </ConfirmButton>
-          <ConfirmButton
-            className="btn"
-            onConfirm={() => {
-              game.dispatch({ type: 'finish', winner: 'black' });
-              setShowFinish(false);
-            }}
-          >
-            Победа мафии
-          </ConfirmButton>
-          <button className="btn btn-ghost" onClick={() => setShowFinish(false)}>
-            Отмена
-          </button>
-        </div>
-      )}
 
       {state.result && !showTable ? (
         <ResultsView
@@ -161,23 +147,21 @@ export function GameScreen({ initial, onExit, onSave }: Props) {
       ) : (
         <div className="game-body">
           <section className="table-wrap">
+            <div className={`table-hint ${tablePicks ? 'is-picking' : ''}`}>
+              {tablePicks
+                ? `${tablePicks.label} Выберите игрока на столе или в панели.`
+                : 'Нажмите на игрока, чтобы дать фол или удалить его.'}
+            </div>
             <Table
               state={state}
               hideRoles={hideRoles}
-              selected={selected}
-              selectable={mode ? mode.can : null}
+              selected={tablePicks ? tablePicks.selected : []}
+              selectable={tablePicks ? (n) => tablePicks.can(n) || tablePicks.selected.includes(n) : null}
               onSeatTap={onSeatTap}
             />
           </section>
           <aside className="panel">
-            <PhasePanel
-              state={state}
-              phaseKey={phaseKey}
-              selected={selected}
-              setSelected={setSelected}
-              dispatch={game.dispatch}
-              hideRoles={hideRoles}
-            />
+            <PhasePanel state={state} ui={ui} phaseKey={phaseKey} dispatch={game.dispatch} />
           </aside>
         </div>
       )}

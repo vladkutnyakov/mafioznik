@@ -1,13 +1,6 @@
-import {
-  ROLE_NAMES,
-  currentCandidates,
-  isAlive,
-  nominatedBy,
-  seatOf,
-  type GameEvent,
-  type GameState,
-} from '../../engine';
+import { ROLE_NAMES, isAlive, seatOf, type GameEvent, type GameState } from '../../engine';
 import { ConfirmButton } from './ConfirmButton';
+import { nominateBlocker } from './rules';
 
 interface Props {
   state: GameState;
@@ -17,24 +10,16 @@ interface Props {
   onClose: () => void;
 }
 
-function nominateBlocker(state: GameState, target: number): string | null {
-  const p = state.phase;
-  if (p.kind !== 'speech') return 'Выставлять можно только во время речи.';
-  if (!isAlive(seatOf(state, target))) return 'Игрок выбыл.';
-  const reg = state.regulation.nominations;
-  if (!reg.allowSelf && target === p.seat) return 'Нельзя выставить себя.';
-  if (currentCandidates(state).includes(target)) return 'Уже выставлен.';
-  if (nominatedBy(state, p.seat).length >= reg.perSpeech) return `Игрок №${p.seat} уже выставил кандидатуру.`;
-  return null;
-}
-
 function foulHint(state: GameState, fouls: number): string | null {
   const f = state.regulation.fouls;
-  if (fouls + 1 >= f.removeAt) return 'Игрок будет удалён.';
-  if (fouls + 1 === f.skipSpeechAt) return 'Игрок пропустит ближайшую речь.';
+  if (fouls + 1 >= f.removeAt) return 'Это будет четвёртый фол: игрок удаляется.';
+  if (fouls + 1 === f.skipSpeechAt) return 'Третий фол: игрок пропустит ближайшую речь.';
   return null;
 }
 
+const STATUS: Record<string, string> = { killed: 'убит', voted: 'ушёл голосованием', removed: 'удалён' };
+
+/** Карточка игрока: фолы, выставление, удаление. */
 export function SeatMenu({ state, seat, hideRoles, dispatch, onClose }: Props) {
   const s = seatOf(state, seat);
   const p = state.phase;
@@ -42,6 +27,7 @@ export function SeatMenu({ state, seat, hideRoles, dispatch, onClose }: Props) {
   const blocker = nominateBlocker(state, seat);
   const nomination = state.nominations.find((n) => n.day === state.day && n.target === seat);
   const canCancel = nomination !== undefined && (p.kind === 'speech' || (p.kind === 'voting' && p.round === 'main'));
+  const hint = alive ? foulHint(state, s.fouls) : null;
   const act = (event: GameEvent) => {
     if (dispatch(event)) onClose();
   };
@@ -50,60 +36,64 @@ export function SeatMenu({ state, seat, hideRoles, dispatch, onClose }: Props) {
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={`Игрок №${seat}`}>
         <div className="sheet-head">
-          <div className="seat-num big">{seat}</div>
-          <div>
+          <span className="sheet-no">{seat}</span>
+          <div className="sheet-who">
             <div className="sheet-title">{s.player.nickname}</div>
             <div className="muted">
               {!hideRoles && `${ROLE_NAMES[s.role]} · `}
-              Фолов: {s.fouls}
-              {s.status !== 'alive' && ` · ${s.status === 'killed' ? 'убит' : s.status === 'voted' ? 'заголосован' : 'удалён'}`}
+              фолов: {s.fouls}
+              {s.status !== 'alive' && ` · ${STATUS[s.status]}`}
             </div>
           </div>
-          <div className="spacer" />
-          <button className="icon-btn" onClick={onClose} aria-label="Закрыть">
-            ✕
+          <button className="btn btn-ghost" onClick={onClose}>
+            Закрыть
           </button>
         </div>
 
         <div className="sheet-actions">
           {canCancel && (
-            <button className="btn btn-lg btn-block btn-warn" onClick={() => act({ type: 'cancelNomination', target: seat })}>
+            <button className="btn btn-lg btn-block" onClick={() => act({ type: 'cancelNomination', target: seat })}>
               Снять выставление №{seat}
-              <span className="btn-sub">выставил №{nomination.by}</span>
             </button>
           )}
 
-          {p.kind === 'speech' && alive && !canCancel && (
-            <div>
-              <button
-                className="btn btn-primary btn-lg btn-block"
-                disabled={blocker !== null}
-                onClick={() => act({ type: 'nominate', target: seat })}
-              >
-                Выставить №{seat}
-                <span className="btn-sub">выставляет №{p.seat}</span>
-              </button>
-              {blocker && <div className="hint">{blocker}</div>}
-            </div>
+          {p.kind === 'speech' && alive && !canCancel && blocker === null && (
+            <button className="btn btn-lg btn-block" onClick={() => act({ type: 'nominate', target: seat })}>
+              Выставить №{seat} от имени №{p.seat}
+            </button>
           )}
 
           {s.status !== 'removed' && (
             <div>
-              <button className="btn btn-lg btn-block" onClick={() => act({ type: 'foul', seat })}>
-                Фол: {s.fouls} → {s.fouls + 1}
+              <button className="btn btn-primary btn-lg btn-block" onClick={() => act({ type: 'foul', seat })}>
+                Дать фол · станет {s.fouls + 1}
               </button>
-              {alive && foulHint(state, s.fouls) && <div className="hint warn">{foulHint(state, s.fouls)}</div>}
+              {hint && <div className="hint hint-warn">{hint}</div>}
             </div>
           )}
 
           {alive && (
-            <div className="row">
-              <ConfirmButton className="btn btn-danger spacer" onConfirm={() => act({ type: 'disqualify', seat })}>
-                Дисквалификация
-              </ConfirmButton>
-              <ConfirmButton className="btn btn-danger spacer" onConfirm={() => act({ type: 'ppk', seat })}>
-                ППК
-              </ConfirmButton>
+            <div className="sheet-danger">
+              <div className="section-label">Нарушения</div>
+              <div className="row">
+                <ConfirmButton
+                  className="btn btn-danger spacer"
+                  confirmLabel="Точно удалить?"
+                  onConfirm={() => act({ type: 'disqualify', seat })}
+                >
+                  Дисквалификация
+                </ConfirmButton>
+                <ConfirmButton
+                  className="btn btn-danger spacer"
+                  confirmLabel="Команда проиграет. Точно?"
+                  onConfirm={() => act({ type: 'ppk', seat })}
+                >
+                  Поражение команды
+                </ConfirmButton>
+              </div>
+              <div className="hint">
+                Дисквалификация удаляет только игрока. Поражение команды (ППК) сразу завершает игру победой соперников.
+              </div>
             </div>
           )}
         </div>

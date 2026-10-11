@@ -1,203 +1,76 @@
-import {
-  TEAM_NAMES,
-  FINISH_REASON_NAMES,
-  currentCandidates,
-  describePhase,
-  nightCheckerActive,
-  phaseDuration,
-  seatOf,
-  teamOf,
-  type GameEvent,
-  type GameState,
-} from '../../engine';
+import { phaseDuration, type GameEvent, type GameState } from '../../engine';
+import type { ActionSpec, PhaseUi } from './phaseUi';
+import { SeatPicker } from './SeatPicker';
 import { Timer } from './Timer';
 import { LiftAllPanel, VotingPanel } from './VotingPanels';
 
 interface Props {
   state: GameState;
+  ui: PhaseUi;
   phaseKey: string;
-  selected: number[];
-  setSelected: (seats: number[]) => void;
   dispatch: (event: GameEvent) => boolean;
-  hideRoles: boolean;
 }
 
-export function PhasePanel({ state, phaseKey, selected, setSelected, dispatch, hideRoles }: Props) {
-  const p = state.phase;
-  const d = describePhase(state);
-  const duration = phaseDuration(p, state.regulation);
-  const advance = () => dispatch({ type: 'advance' });
+export function Kbd({ children }: { children: string }) {
+  return <kbd className="kbd">{children}</kbd>;
+}
+
+function ActionButton({ action, primary }: { action: ActionSpec; primary: boolean }) {
+  return (
+    <button
+      className={`btn btn-lg btn-block ${primary ? 'btn-primary' : ''}`}
+      disabled={action.disabled}
+      onClick={action.onClick}
+    >
+      <span>{action.label}</span>
+      {action.kbd && <Kbd>{action.kbd}</Kbd>}
+    </button>
+  );
+}
+
+/** Панель текущего шага: что происходит, что сказать, что ввести, куда нажать дальше. */
+export function PhasePanel({ state, ui, phaseKey, dispatch }: Props) {
+  const duration = phaseDuration(state.phase, state.regulation);
 
   return (
     <div className="panel-inner">
-      <div className="phase-head">
-        <div className="phase-title">{d.title}</div>
-        <div className="phase-prompt">{d.prompt}</div>
+      <div className="panel-scroll">
+        <div className="step">
+          <div className="step-over">{ui.overline}</div>
+          <h2 className="step-heading">{ui.heading}</h2>
+        </div>
+
+        {ui.say && (
+          <div className="say">
+            <div className="section-label">Ведущий говорит</div>
+            <div className="say-text">{ui.say}</div>
+          </div>
+        )}
+
+        {ui.note && <div className={`note note-${ui.noteTone ?? 'info'}`}>{ui.note}</div>}
+
+        {duration !== null && (
+          <Timer key={phaseKey} duration={duration} warningAt={state.regulation.timings.warningAt} />
+        )}
+
+        {ui.custom === 'voting' && state.phase.kind === 'voting' && (
+          <VotingPanel key={phaseKey} state={state} candidates={state.phase.candidates} dispatch={dispatch} />
+        )}
+        {ui.custom === 'liftAll' && state.phase.kind === 'liftAllVote' && (
+          <LiftAllPanel key={phaseKey} state={state} candidates={state.phase.candidates} dispatch={dispatch} />
+        )}
+
+        {ui.extraFirst && ui.extra}
+        {ui.picker && <SeatPicker state={state} spec={ui.picker} />}
+        {!ui.extraFirst && ui.extra}
       </div>
 
-      {duration !== null && (
-        <Timer
-          key={phaseKey}
-          duration={duration}
-          resetKey={phaseKey}
-          warningAt={state.regulation.timings.warningAt}
-        />
+      {(ui.primary || ui.secondary) && (
+        <div className="panel-footer">
+          {ui.primary && <ActionButton action={ui.primary} primary />}
+          {ui.secondary && <ActionButton action={ui.secondary} primary={false} />}
+        </div>
       )}
-
-      <div className="phase-body">{renderBody()}</div>
     </div>
   );
-
-  function renderBody() {
-    switch (p.kind) {
-      case 'night0':
-      case 'morning':
-      case 'tieSpeech':
-      case 'farewell':
-        return (
-          <button className="btn btn-primary btn-lg btn-block" onClick={advance}>
-            Дальше →
-          </button>
-        );
-
-      case 'speech': {
-        const candidates = currentCandidates(state);
-        return (
-          <>
-            <div className="hint">Чтобы выставить кандидатуру или дать фол, нажмите на место игрока.</div>
-            {candidates.length ? (
-              <div className="candidate-chips">
-                <span className="candidates-line">На голосовании:</span>
-                {candidates.map((c) => (
-                  <span key={c} className="candidate-chip">
-                    №{c}
-                    <button
-                      className="candidate-chip-x"
-                      onClick={() => dispatch({ type: 'cancelNomination', target: c })}
-                      aria-label={`Снять выставление №${c}`}
-                      title="Снять выставление"
-                    >
-                      ✕
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <div className="candidates-line">Кандидатур пока нет</div>
-            )}
-            <button className="btn btn-primary btn-lg btn-block" onClick={advance}>
-              Следующий игрок →
-            </button>
-          </>
-        );
-      }
-
-      case 'voting':
-        return <VotingPanel key={phaseKey} state={state} candidates={p.candidates} dispatch={dispatch} />;
-
-      case 'liftAllVote':
-        return <LiftAllPanel key={phaseKey} state={state} candidates={p.candidates} dispatch={dispatch} />;
-
-      case 'night': {
-        const target = selected[0];
-        if (p.step === 'shoot') {
-          return (
-            <>
-              <div className="hint">Нажмите на место игрока, в которого стреляла мафия.</div>
-              <button
-                className="btn btn-primary btn-lg btn-block"
-                disabled={target === undefined}
-                onClick={() => dispatch({ type: 'shoot', target: target! })}
-              >
-                {target === undefined ? 'Выберите игрока' : `Убит №${target}`}
-              </button>
-              <button className="btn btn-lg btn-block" onClick={() => dispatch({ type: 'shoot', target: null })}>
-                Промах
-              </button>
-            </>
-          );
-        }
-        const isDon = p.step === 'donCheck';
-        if (!nightCheckerActive(state, p.step)) {
-          return (
-            <>
-              <div className="check-result is-muted">{isDon ? 'Дон' : 'Шериф'} выбыл</div>
-              <div className="hint">
-                Объявите фазу как обычно и выдержите паузу по таймеру, чтобы игроки не догадались. Проверки нет.
-              </div>
-              <button className="btn btn-primary btn-lg btn-block" onClick={advance}>
-                Дальше →
-              </button>
-            </>
-          );
-        }
-        const result =
-          target === undefined
-            ? null
-            : isDon
-              ? seatOf(state, target).role === 'sheriff'
-                ? 'ШЕРИФ'
-                : 'НЕ ШЕРИФ'
-              : teamOf(seatOf(state, target)) === 'black'
-                ? 'МАФИЯ'
-                : 'МИРНЫЙ';
-        const positive = result === 'ШЕРИФ' || result === 'МАФИЯ';
-        return (
-          <>
-            <div className="hint">Нажмите на место игрока, которого проверяет {isDon ? 'дон' : 'шериф'}.</div>
-            {result && (
-              <div className={`check-result ${positive ? 'is-positive' : ''}`}>
-                №{target}: {result}
-              </div>
-            )}
-            <button
-              className="btn btn-primary btn-lg btn-block"
-              disabled={target === undefined}
-              onClick={() => dispatch({ type: 'check', target: target! })}
-            >
-              Записать проверку
-            </button>
-            <button className="btn btn-lg btn-block" onClick={advance}>
-              Без проверки
-            </button>
-          </>
-        );
-      }
-
-      case 'bestMove':
-        return (
-          <>
-            <div className="hint">Нажмите на места трёх названных игроков.</div>
-            <div className="candidates-line">
-              {selected.length ? `Выбрано: ${selected.map((n) => `№${n}`).join(', ')}` : 'Никто не выбран'}
-            </div>
-            <button
-              className="btn btn-primary btn-lg btn-block"
-              disabled={selected.length === 0}
-              onClick={() => dispatch({ type: 'bestMove', targets: selected })}
-            >
-              Записать лучший ход
-            </button>
-            <button
-              className="btn btn-lg btn-block"
-              onClick={() => {
-                setSelected([]);
-                advance();
-              }}
-            >
-              Без лучшего хода
-            </button>
-          </>
-        );
-
-      case 'finished':
-        return (
-          <div className="finished-banner" data-team={state.result?.winner}>
-            <div className="finished-winner">Победа: {state.result ? TEAM_NAMES[state.result.winner] : '—'}</div>
-            <div className="muted">{state.result ? FINISH_REASON_NAMES[state.result.reason] : ''}</div>
-            {hideRoles && <div className="hint">Роли скрыты. Откройте их кнопкой с глазом.</div>}
-          </div>
-        );
-    }
-  }
 }

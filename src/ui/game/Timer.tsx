@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { beepEnd, beepWarning } from '../audio/sound';
+import { Kbd } from './PhasePanel';
 
 interface Props {
-  /** Длительность в секундах. */
+  /** Длительность в секундах. Таймер пересоздаётся на каждую фазу через key. */
   duration: number;
-  /** При смене ключа таймер сбрасывается: новая фаза — новый отсчёт. */
-  resetKey: string;
   warningAt: number;
-  autoStart?: boolean;
 }
 
 function format(ms: number): string {
@@ -17,9 +15,10 @@ function format(ms: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export function Timer({ duration, resetKey, warningAt, autoStart = false }: Props) {
+export function Timer({ duration, warningAt }: Props) {
   const [remaining, setRemaining] = useState(duration * 1000);
-  const [running, setRunning] = useState(autoStart);
+  const [total, setTotal] = useState(duration * 1000);
+  const [running, setRunning] = useState(false);
   const [ended, setEnded] = useState(false);
   const remainingRef = useRef(remaining);
   const endAt = useRef<number | null>(null);
@@ -28,15 +27,6 @@ export function Timer({ duration, resetKey, warningAt, autoStart = false }: Prop
   remainingRef.current = remaining;
   // Предупреждение имеет смысл, только если таймер длиннее порога.
   const warnEnabled = duration > warningAt;
-
-  useEffect(() => {
-    setRemaining(duration * 1000);
-    remainingRef.current = duration * 1000;
-    setRunning(autoStart);
-    setEnded(false);
-    endAt.current = null;
-    warned.current = false;
-  }, [resetKey, duration, autoStart]);
 
   useEffect(() => {
     if (!running) {
@@ -64,21 +54,11 @@ export function Timer({ duration, resetKey, warningAt, autoStart = false }: Prop
     return () => window.clearInterval(id);
   }, [running, warnEnabled, warningAt]);
 
-  const addTen = () => {
-    setEnded(false);
-    if (running && endAt.current !== null) {
-      endAt.current += 10_000;
-      setRemaining(endAt.current - Date.now());
-    } else {
-      setRemaining((r) => r + 10_000);
-    }
-    if (remainingRef.current + 10_000 > warningAt * 1000) warned.current = false;
-  };
-
   const reset = () => {
     setRunning(false);
     setEnded(false);
     setRemaining(duration * 1000);
+    setTotal(duration * 1000);
     warned.current = false;
   };
 
@@ -91,20 +71,38 @@ export function Timer({ duration, resetKey, warningAt, autoStart = false }: Prop
     setRunning((r) => !r);
   };
 
+  const addTen = () => {
+    setEnded(false);
+    setTotal((t) => Math.max(t, remainingRef.current + 10_000));
+    if (running && endAt.current !== null) {
+      endAt.current += 10_000;
+      setRemaining(endAt.current - Date.now());
+    } else {
+      setRemaining((r) => r + 10_000);
+    }
+    if (remainingRef.current + 10_000 > warningAt * 1000) warned.current = false;
+  };
+
   const state = ended ? 'is-over' : warnEnabled && remaining <= warningAt * 1000 ? 'is-warn' : '';
+  const progress = total > 0 ? Math.min(1, remaining / total) : 0;
 
   return (
     <div className={`timer ${state} ${running ? 'is-running' : ''}`}>
-      <button className="timer-face" onClick={toggle} aria-label={running ? 'Пауза' : 'Старт'}>
+      <div className="timer-face">
         <span className="timer-digits">{format(remaining)}</span>
-        <span className="timer-hint">{ended ? 'Время вышло' : running ? 'Нажмите для паузы' : 'Нажмите для старта'}</span>
-      </button>
+        <span className="timer-status">{ended ? 'Время вышло' : running ? 'Идёт' : 'На паузе'}</span>
+      </div>
+      <div className="timer-bar">
+        <i style={{ transform: `scaleX(${progress})` }} />
+      </div>
       <div className="timer-controls">
-        <button className="btn" onClick={toggle}>
-          {running ? '❚❚ Пауза' : '▶ Старт'}
+        <button className={`btn ${running ? '' : 'btn-accent-outline'}`} onClick={toggle}>
+          {running ? 'Пауза' : ended ? 'Заново' : 'Старт'}
+          <Kbd>Пробел</Kbd>
         </button>
         <button className="btn" onClick={reset}>
-          ↺ Сброс
+          Сброс
+          <Kbd>R</Kbd>
         </button>
         <button className="btn" onClick={addTen}>
           +10 с

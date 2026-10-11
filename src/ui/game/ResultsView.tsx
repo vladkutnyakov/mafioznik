@@ -63,7 +63,10 @@ export function ResultsView({ state, dispatch, onSave, onShowTable }: Props) {
               <td className="num">{s.seat}</td>
               <td className="nick">{s.player.nickname}</td>
               <td>
-                <span className={`seat-role role-${s.role}`}>{ROLE_NAMES[s.role]}</span>
+                <span className={`seat-role ${s.team === 'red' ? 'is-red' : 'is-black'}`}>
+                  <i className={`dot ${s.team === 'red' ? 'dot-red' : 'dot-black'}`} />
+                  {ROLE_NAMES[s.role]}
+                </span>
               </td>
               <td>{fmt(s.base)}</td>
               <td>{s.bestMove ? signed(s.bestMove) : '—'}</td>

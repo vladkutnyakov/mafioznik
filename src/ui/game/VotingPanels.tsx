@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { aliveCount, type GameEvent, type GameState } from '../../engine';
 import { NumberPad } from './NumberPad';
+import { Kbd } from './PhasePanel';
+import { nick } from './rules';
 
 const list = (seats: number[]) => seats.map((n) => `№${n}`).join(', ');
 
@@ -23,6 +25,7 @@ export function VotingPanel({ state, candidates, dispatch }: VotingProps) {
   const complete = values.every((v) => v !== null);
   const max = Math.max(...full);
   const leaders = candidates.filter((_, i) => full[i] === max);
+  const maxForActive = alive - (entered - (values[active] ?? 0));
 
   const nominator = (seat: number) => state.nominations.find((x) => x.day === state.day && x.target === seat)?.by;
 
@@ -31,55 +34,58 @@ export function VotingPanel({ state, candidates, dispatch }: VotingProps) {
     setValues(next);
     const nextEmpty = next.findIndex((v, i) => v === null && i !== active);
     if (nextEmpty >= 0) setActive(nextEmpty);
-    else if (active < next.length - 1) setActive(active + 1);
   };
 
-  const maxForActive = alive - (entered - (values[active] ?? 0));
+  const confirm = () => {
+    if (complete && last >= 0) dispatch({ type: 'vote', votes: values as number[] });
+  };
 
   return (
     <div className="vote">
       <div className="vote-rows">
         {candidates.map((c, i) => {
           const isLast = i === n - 1;
-          const value = isLast ? last : values[i];
+          const value = isLast ? (complete ? last : null) : values[i];
           const by = nominator(c);
+          const isActive = !isLast && i === active;
           return (
             <button
               key={c}
-              className={`vote-row ${!isLast && i === active ? 'is-active' : ''} ${isLast ? 'is-auto' : ''}`}
+              className={`vote-row ${isActive ? 'is-active' : ''} ${isLast ? 'is-auto' : ''}`}
               onClick={() => !isLast && setActive(i)}
               disabled={isLast}
             >
               <span className="vote-seat">№{c}</span>
-              <span className="muted vote-by">{by ? `выставил №${by}` : ''}</span>
-              <span className="vote-value">{value ?? '—'}</span>
-              {isLast && <span className="vote-auto">остальные</span>}
+              <span className="vote-meta">
+                <span className="vote-nick">{nick(state, c)}</span>
+                <span className="vote-by">
+                  {isLast ? 'получает оставшиеся голоса' : by ? `выставил №${by}` : ''}
+                </span>
+              </span>
+              <span className="vote-value">{value ?? (isLast ? '…' : '—')}</span>
             </button>
           );
         })}
       </div>
 
-      {n > 1 && <NumberPad upTo={alive} max={maxForActive} value={values[active] ?? null} onPick={pick} />}
+      {n > 1 && (
+        <div>
+          <div className="section-label">Сколько рук за №{candidates[active]}?</div>
+          <NumberPad upTo={alive} max={maxForActive} value={values[active] ?? null} onPick={pick} />
+        </div>
+      )}
 
-      <div className="vote-summary">
-        Живых игроков: {alive}.{' '}
-        {complete ? (
-          leaders.length === 1 ? (
-            <b>Уходит №{leaders[0]}</b>
-          ) : (
-            <b>Попил: {list(leaders)}</b>
-          )
-        ) : (
-          'Введите голоса за каждого кандидата.'
-        )}
+      <div className={`vote-result ${complete ? 'is-ready' : ''}`}>
+        {complete
+          ? leaders.length === 1
+            ? `Уходит №${leaders[0]} · ${nick(state, leaders[0]!)}`
+            : `Попил: ${list(leaders)}`
+          : `Голосуют ${alive} игроков. Введите голоса по порядку.`}
       </div>
 
-      <button
-        className="btn btn-primary btn-lg btn-block"
-        disabled={!complete || last < 0}
-        onClick={() => dispatch({ type: 'vote', votes: values as number[] })}
-      >
-        Подтвердить голосование
+      <button className="btn btn-primary btn-lg btn-block" disabled={!complete || last < 0} onClick={confirm}>
+        <span>Подтвердить голосование</span>
+        <Kbd>Enter</Kbd>
       </button>
     </div>
   );
@@ -98,18 +104,24 @@ export function LiftAllPanel({ state, candidates, dispatch }: LiftAllProps) {
 
   return (
     <div className="vote">
-      <div className="muted">Сколько игроков за то, чтобы {list(candidates)} покинули стол?</div>
-      <NumberPad upTo={alive} max={alive} value={value} onPick={setValue} />
-      <div className="vote-summary">
-        Нужно больше половины: {Math.floor(alive / 2) + 1} из {alive}.{' '}
-        {value !== null && <b>{lifted ? `Уходят все: ${list(candidates)}` : 'Все остаются'}</b>}
+      <div>
+        <div className="section-label">Сколько рук за подъём всех?</div>
+        <NumberPad upTo={alive} max={alive} value={value} onPick={setValue} />
+      </div>
+      <div className={`vote-result ${value !== null ? 'is-ready' : ''}`}>
+        {value === null
+          ? `Нужно больше половины: ${Math.floor(alive / 2) + 1} из ${alive}.`
+          : lifted
+            ? `Уходят все: ${list(candidates)}`
+            : 'Все остаются за столом'}
       </div>
       <button
         className="btn btn-primary btn-lg btn-block"
         disabled={value === null}
         onClick={() => value !== null && dispatch({ type: 'liftAllVote', votesFor: value })}
       >
-        Подтвердить
+        <span>Подтвердить</span>
+        <Kbd>Enter</Kbd>
       </button>
     </div>
   );

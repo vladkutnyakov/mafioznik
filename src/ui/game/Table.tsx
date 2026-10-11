@@ -1,10 +1,4 @@
-import {
-  ROLE_NAMES,
-  aliveByTeam,
-  currentCandidates,
-  type GameState,
-  type SeatState,
-} from '../../engine';
+import { ROLE_NAMES, aliveByTeam, currentCandidates, type GameState, type SeatState } from '../../engine';
 
 interface Props {
   state: GameState;
@@ -15,19 +9,12 @@ interface Props {
   onSeatTap: (seat: number) => void;
 }
 
-const ROLE_ICON: Record<SeatState['role'], string> = {
-  civilian: '',
-  sheriff: '★',
-  mafia: '',
-  don: '♛',
-};
-
 /** Место на овале: №1 слева от ведущего (ведущий внизу), дальше по часовой стрелке. */
 function seatPosition(seat: number): { left: string; top: string } {
   const angle = ((90 + (seat - 0.5) * 36) * Math.PI) / 180;
   return {
-    left: `${50 + 41 * Math.cos(angle)}%`,
-    top: `${50 + 40 * Math.sin(angle)}%`,
+    left: `${50 + 40 * Math.cos(angle)}%`,
+    top: `${50 + 39 * Math.sin(angle)}%`,
   };
 }
 
@@ -47,51 +34,53 @@ function activeSeat(state: GameState): number | null {
 function statusLabel(state: GameState, seat: SeatState): string | null {
   if (seat.status === 'alive') return null;
   const e = state.eliminations.find((x) => x.seat === seat.seat);
-  if (seat.status === 'killed') return `Убит · ночь ${e?.day ?? ''}`;
-  if (seat.status === 'voted') return `Заголосован · день ${e?.day ?? ''}`;
+  if (seat.status === 'killed') return `Убит в ночь ${e?.day ?? ''}`;
+  if (seat.status === 'voted') return `Ушёл в день ${e?.day ?? ''}`;
   return 'Удалён';
 }
 
-const showsNominations = (state: GameState) =>
-  ['speech', 'voting', 'tieSpeech', 'liftAllVote'].includes(state.phase.kind);
+function centerLabel(state: GameState): string {
+  const p = state.phase;
+  if (p.kind === 'finished') return 'Игра окончена';
+  if (p.kind === 'night0') return 'Ночь 0';
+  if (p.kind === 'night') return `Ночь ${state.day}`;
+  if (p.kind === 'morning' || p.kind === 'bestMove' || (p.kind === 'farewell' && p.reason === 'killed')) {
+    return `Утро`;
+  }
+  return `День ${state.day}`;
+}
+
+const showsNominations = (state: GameState) => ['speech', 'voting', 'tieSpeech', 'liftAllVote'].includes(state.phase.kind);
 
 export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Props) {
   const candidates = showsNominations(state) ? currentCandidates(state) : [];
   const speaker = activeSeat(state);
   const alive = aliveByTeam(state);
-  const p = state.phase;
-  const centerLabel =
-    p.kind === 'finished'
-      ? 'Игра окончена'
-      : p.kind === 'night0'
-        ? 'Ночь 0'
-        : p.kind === 'night'
-          ? `Ночь ${state.day}`
-          : p.kind === 'morning' || p.kind === 'bestMove' || (p.kind === 'farewell' && p.reason === 'killed')
-            ? `Утро · день ${state.day + 1}`
-            : `День ${state.day}`;
 
   return (
     <div className="table">
       <div className="table-oval">
         <div className="table-center">
-          <div className="table-day">{centerLabel}</div>
+          <div className="table-day">{centerLabel(state)}</div>
           {!hideRoles && (
             <div className="table-alive">
-              <span className="team-dot red" /> {alive.red} <span className="team-dot black" /> {alive.black}
+              <span>
+                <i className="dot dot-red" /> красных {alive.red}
+              </span>
+              <span>
+                <i className="dot dot-black" /> чёрных {alive.black}
+              </span>
             </div>
           )}
           {candidates.length > 0 && (
             <div className="table-candidates">
-              <div className="muted">На голосовании</div>
-              <div className="table-candidates-list">{candidates.map((c) => `№${c}`).join('  ')}</div>
+              На голосовании: <b>{candidates.map((c) => `№${c}`).join(', ')}</b>
             </div>
           )}
         </div>
       </div>
 
       {state.seats.map((seat) => {
-        const pos = seatPosition(seat.seat);
         const status = statusLabel(state, seat);
         const candidateIdx = candidates.indexOf(seat.seat);
         const nominated = showsNominations(state)
@@ -99,63 +88,68 @@ export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Pro
           : [];
         const sheriffChecks = state.nights.filter((n) => n.sheriffCheck?.target === seat.seat);
         const donChecks = state.nights.filter((n) => n.donCheck?.target === seat.seat);
-        const isSelectable = selectable ? selectable(seat.seat) : true;
+        const canSelect = selectable ? selectable(seat.seat) : true;
+        const isRed = seat.role === 'civilian' || seat.role === 'sheriff';
         const classes = [
           'seat',
           seat.status !== 'alive' ? 'is-out' : '',
           speaker === seat.seat ? 'is-active' : '',
           selected.includes(seat.seat) ? 'is-selected' : '',
-          selectable && !isSelectable ? 'is-disabled' : '',
+          selectable && !canSelect ? 'is-disabled' : '',
+          selectable && canSelect ? 'is-pickable' : '',
           candidateIdx >= 0 ? 'is-candidate' : '',
         ].join(' ');
+
+        const tags: { text: string; tone?: string }[] = [];
+        if (candidateIdx >= 0) tags.push({ text: `кандидат ${candidateIdx + 1}`, tone: 'amber' });
+        nominated.forEach((t) => tags.push({ text: `выставил №${t}` }));
+        if (seat.skipNextSpeech) tags.push({ text: 'без речи', tone: 'amber' });
+        if (!hideRoles) {
+          sheriffChecks.forEach((n) =>
+            tags.push({ text: `шериф: ${n.sheriffCheck!.isBlack ? 'чёрный' : 'красный'}`, tone: n.sheriffCheck!.isBlack ? 'black' : 'red' }),
+          );
+          donChecks.forEach((n) => tags.push({ text: `дон: ${n.donCheck!.isSheriff ? 'шериф' : 'не шериф'}` }));
+        }
 
         return (
           <button
             key={seat.seat}
             className={classes}
-            style={pos}
-            data-team={hideRoles ? undefined : seat.role === 'civilian' || seat.role === 'sheriff' ? 'red' : 'black'}
-            disabled={Boolean(selectable) && !isSelectable}
+            style={seatPosition(seat.seat)}
+            disabled={Boolean(selectable) && !canSelect}
             onClick={() => onSeatTap(seat.seat)}
           >
-            <div className="seat-top">
-              <span className="seat-number">{seat.seat}</span>
-              {!hideRoles && (
-                <span className={`seat-role role-${seat.role}`}>
-                  {ROLE_ICON[seat.role]} {ROLE_NAMES[seat.role]}
-                </span>
-              )}
-            </div>
-            <div className="seat-nick">{seat.player.nickname}</div>
-            <div className="seat-bottom">
-              <span className="fouls" aria-label={`Фолов: ${seat.fouls}`}>
+            <span className="seat-head">
+              <span className="seat-no">{seat.seat}</span>
+              <span className="seat-name">{seat.player.nickname}</span>
+            </span>
+            {(!hideRoles || status) && (
+              <span className="seat-line">
+                {!hideRoles && (
+                  <span className={`seat-role ${isRed ? 'is-red' : 'is-black'}`}>
+                    <i className={`dot ${isRed ? 'dot-red' : 'dot-black'}`} />
+                    {ROLE_NAMES[seat.role]}
+                  </span>
+                )}
+                {status && <span className="seat-status">{status}</span>}
+              </span>
+            )}
+            <span className="seat-line">
+              <span className={`seat-fouls ${seat.fouls >= 3 ? 'is-hot' : ''}`} aria-label={`Фолов: ${seat.fouls}`}>
                 {[0, 1, 2, 3].map((i) => (
-                  <i key={i} className={i < seat.fouls ? (seat.fouls >= 3 ? 'on hot' : 'on') : ''} />
+                  <i key={i} className={i < seat.fouls ? 'on' : ''} />
                 ))}
               </span>
-              {candidateIdx >= 0 && <span className="chip chip-accent">голосование {candidateIdx + 1}</span>}
-              {nominated.map((t) => (
-                <span key={t} className="chip">
-                  → №{t}
-                </span>
-              ))}
-              {seat.skipNextSpeech && <span className="chip chip-warn">без речи</span>}
-            </div>
-            {!hideRoles && (sheriffChecks.length > 0 || donChecks.length > 0) && (
-              <div className="seat-checks">
-                {sheriffChecks.map((n) => (
-                  <span key={`s${n.night}`} className={`chip ${n.sheriffCheck!.isBlack ? 'chip-black' : 'chip-red'}`}>
-                    Шериф: {n.sheriffCheck!.isBlack ? 'чёрный' : 'красный'}
+            </span>
+            {tags.length > 0 && (
+              <span className="seat-tags">
+                {tags.map((t, i) => (
+                  <span key={i} className={`tag ${t.tone ? `tag-${t.tone}` : ''}`}>
+                    {t.text}
                   </span>
                 ))}
-                {donChecks.map((n) => (
-                  <span key={`d${n.night}`} className="chip">
-                    Дон: {n.donCheck!.isSheriff ? 'шериф' : 'не шериф'}
-                  </span>
-                ))}
-              </div>
+              </span>
             )}
-            {status && <div className="seat-status">{status}</div>}
           </button>
         );
       })}
