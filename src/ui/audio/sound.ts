@@ -2,6 +2,10 @@
 
 let ctx: AudioContext | null = null;
 
+export function getAudioContext(): AudioContext | null {
+  return getCtx();
+}
+
 function getCtx(): AudioContext | null {
   if (ctx) return ctx;
   const Ctor =

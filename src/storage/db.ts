@@ -81,6 +81,14 @@ export async function kvSet(key: string, value: unknown): Promise<void> {
   }
 }
 
+/**
+ * Запись только в IndexedDB, без запасного localStorage.
+ * Нужна для файлов (музыки): localStorage не умеет хранить Blob. Бросает ошибку, если базы нет.
+ */
+export async function kvSetStrict(key: string, value: unknown): Promise<void> {
+  await run('readwrite', (s) => s.put(value, key));
+}
+
 export async function kvDel(key: string): Promise<void> {
   try {
     await run('readwrite', (s) => s.delete(key));
