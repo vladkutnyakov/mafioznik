@@ -260,6 +260,18 @@ class MusicPlayer {
     if (wasPlaying) await this.play(false);
   }
 
+  /** Включить конкретный трек: прослушивание в библиотеке или выбор вручную. */
+  async playTrack(id: string): Promise<void> {
+    const i = this.tracks.findIndex((t) => t.id === id);
+    if (i < 0) return;
+    this.op++;
+    this.freshNext = false;
+    if (this.index !== i || !this.url) {
+      if (!(await this.loadTrack(i))) return;
+    }
+    await this.play(false);
+  }
+
   private async onEnded(): Promise<void> {
     // Трек закончился посреди ночи: включаем следующий.
     if (!this.night) return;

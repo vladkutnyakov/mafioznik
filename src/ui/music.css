@@ -1,0 +1,197 @@
+/* ---------- музыка ---------- */
+
+.music {
+  max-width: 920px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.music .setup-head {
+  margin-bottom: 0;
+}
+
+.music-intro {
+  margin: 0;
+}
+
+.music-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.music-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.music-h2 {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+label.btn {
+  cursor: pointer;
+}
+
+label.btn.is-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.music-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.track-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid transparent;
+}
+
+.track.is-playing {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.track .btn {
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.btn-icon {
+  min-width: 44px;
+  padding: 0 !important;
+}
+
+.track-no {
+  width: 22px;
+  color: var(--muted);
+  font-weight: 700;
+  text-align: right;
+}
+
+.track-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.track-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.switch-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.switch-row input {
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+  flex: none;
+}
+
+.switch-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.segmented button {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.segmented button.is-on {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.range {
+  width: 100%;
+  max-width: 420px;
+  accent-color: var(--accent);
+  height: 28px;
+}
+
+/* ---------- мини-плеер в игре ---------- */
+
+.music-menu {
+  width: 320px;
+  right: 0;
+  left: auto;
+  padding: 14px;
+  gap: 12px;
+}
+
+.music-menu .row .btn {
+  flex: 1;
+}
+
+.music-now {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-btn.is-playing {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.music-btn.is-blocked {
+  border-color: var(--warn);
+  color: var(--warn);
+}

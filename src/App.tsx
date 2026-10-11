@@ -6,8 +6,15 @@ import { GameScreen } from './ui/screens/GameScreen';
 import { HomeScreen } from './ui/screens/HomeScreen';
 import { SetupScreen } from './ui/screens/SetupScreen';
 import { unlockAudio } from './ui/audio/sound';
+import { music } from './music/player';
+import { MusicScreen } from './ui/screens/MusicScreen';
 
-type Screen = { name: 'loading' } | { name: 'home' } | { name: 'setup' } | { name: 'game'; session: GameSession };
+type Screen =
+  | { name: 'loading' }
+  | { name: 'home' }
+  | { name: 'setup' }
+  | { name: 'music' }
+  | { name: 'game'; session: GameSession };
 
 export function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'loading' });
@@ -25,13 +32,21 @@ export function App() {
 
   useEffect(() => {
     void refresh().then(() => setScreen({ name: 'home' }));
+    void music.reload();
   }, [refresh]);
 
-  // Звук в Safari разрешён только после касания экрана.
+  // Звук в Safari разрешён только после касания экрана или нажатия клавиши.
   useEffect(() => {
-    const onTouch = () => unlockAudio();
+    const onTouch = () => {
+      unlockAudio();
+      music.unlock();
+    };
     window.addEventListener('pointerdown', onTouch);
-    return () => window.removeEventListener('pointerdown', onTouch);
+    window.addEventListener('keydown', onTouch);
+    return () => {
+      window.removeEventListener('pointerdown', onTouch);
+      window.removeEventListener('keydown', onTouch);
+    };
   }, []);
 
   const startGame = async (setup: GameSetup) => {
@@ -68,10 +83,13 @@ export function App() {
           active={active}
           historyCount={historyCount}
           onNew={() => setScreen({ name: 'setup' })}
+          onMusic={() => setScreen({ name: 'music' })}
           onResume={(session) => setScreen({ name: 'game', session })}
           onDiscard={discardGame}
         />
       );
+    case 'music':
+      return <MusicScreen onBack={() => setScreen({ name: 'home' })} />;
     case 'setup':
       return <SetupScreen onBack={() => setScreen({ name: 'home' })} onStart={startGame} />;
     case 'game':

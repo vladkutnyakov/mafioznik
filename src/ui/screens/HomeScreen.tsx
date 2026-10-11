@@ -1,17 +1,20 @@
 import { useMemo, useState } from 'react';
 import { describePhase } from '../../engine';
+import { useMusic } from '../../music/player';
 import { sessionState, type GameSession } from '../../session/session';
 
 interface Props {
   active: GameSession | null;
   historyCount: number;
   onNew: () => void;
+  onMusic: () => void;
   onResume: (session: GameSession) => void;
   onDiscard: () => void;
 }
 
-export function HomeScreen({ active, historyCount, onNew, onResume, onDiscard }: Props) {
+export function HomeScreen({ active, historyCount, onNew, onMusic, onResume, onDiscard }: Props) {
   const [armDiscard, setArmDiscard] = useState(false);
+  const { trackCount } = useMusic();
 
   const activeTitle = useMemo(() => {
     if (!active) return null;
@@ -58,6 +61,11 @@ export function HomeScreen({ active, historyCount, onNew, onResume, onDiscard }:
 
         <button className={`btn btn-lg btn-block ${active ? '' : 'btn-primary'}`} onClick={onNew}>
           Новая игра
+        </button>
+
+        <button className="btn btn-block home-link" onClick={onMusic}>
+          <span>Музыка для ночи</span>
+          <span className="muted">{trackCount ? `${trackCount} шт.` : 'не загружена'}</span>
         </button>
 
         <div className="muted" style={{ fontSize: 14, textAlign: 'center' }}>
