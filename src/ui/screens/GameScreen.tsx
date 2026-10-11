@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { describePhase } from '../../engine';
 import type { GameSession } from '../../session/session';
 import { useGameSession } from '../../session/useGameSession';
+import { music } from '../../music/player';
 import { ConfirmButton } from '../game/ConfirmButton';
+import { MusicControl } from '../game/MusicControl';
 import { ModalOpenContext, blurActive, isEnter, isTyping, seatFromKey, sendTimer } from '../game/keys';
 import { Kbd } from '../game/PhasePanel';
 import { ShortcutsHelp } from '../game/ShortcutsHelp';
@@ -64,6 +66,14 @@ export function GameScreen({ initial, onExit, onSave }: Props) {
   );
 
   useEffect(() => setSelected([]), [phaseKey]);
+
+  // Музыка: включается с началом ночи, плавно затихает утром.
+  useEffect(() => {
+    if (isNight) void music.startNight();
+    else void music.stopNight();
+  }, [isNight]);
+
+  useEffect(() => () => void music.stopNight(), []);
 
   useEffect(() => {
     if (!state.result) setShowTable(false);
@@ -147,6 +157,10 @@ export function GameScreen({ initial, onExit, onSave }: Props) {
     }
     if (e.code === 'KeyH') {
       setHideRoles((v) => !v);
+      return;
+    }
+    if (e.code === 'KeyM') {
+      void music.toggle();
       return;
     }
     if (e.code === 'Space') {
@@ -241,6 +255,8 @@ export function GameScreen({ initial, onExit, onSave }: Props) {
           </div>
   
           <div className="topbar-title">{describePhase(state).title}</div>
+
+          <MusicControl />
   
           <button className={`btn ${hideRoles ? 'btn-warn' : ''}`} onClick={() => setHideRoles((v) => !v)}>
             {hideRoles ? 'Показать роли' : 'Скрыть роли'}
