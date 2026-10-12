@@ -1128,3 +1128,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* В сетке выбора только номера: ники видны на столе. */
+.pick {
+  min-height: 52px;
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}

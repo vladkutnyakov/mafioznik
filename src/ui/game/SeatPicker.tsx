@@ -1,7 +1,7 @@
 import type { GameState } from '../../engine';
 import type { PickerSpec } from './phaseUi';
 
-/** Сетка мест 1–10 для выбора игрока прямо на панели. */
+/** Сетка номеров мест для выбора игрока прямо на панели. Ники видны на столе. */
 export function SeatPicker({ state, spec }: { state: GameState; spec: PickerSpec }) {
   return (
     <div className="picker">
@@ -17,11 +17,10 @@ export function SeatPicker({ state, spec }: { state: GameState; spec: PickerSpec
               disabled={!can}
               onClick={() => spec.onPick(s.seat)}
               aria-pressed={on}
+              aria-label={`№${s.seat}, ${s.player.nickname}`}
+              title={s.player.nickname}
             >
-              <span className="pick-no">{s.seat}</span>
-              <span className="pick-nick" title={s.player.nickname}>
-                {s.player.nickname}
-              </span>
+              {s.seat}
             </button>
           );
         })}
