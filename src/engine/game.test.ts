@@ -75,6 +75,19 @@ describe('тайминги', () => {
     expect(phaseDuration(s.phase, s.regulation)).toBeNull();
   });
 
+  it('меняются посреди игры и отменяются вместе с журналом', () => {
+    const timings = { ...FIIM_REGULATION.timings, speech: 40, nightCheck: 0 };
+    const events: GameEvent[] = [...toDay1, { type: 'setTimings', timings }];
+    const s = replay(setup(), events);
+    expect(phaseDuration(s.phase, s.regulation)).toBe(40);
+    expect(s.phase).toEqual({ kind: 'speech', seat: 1, shortened: false });
+    const undone = replay(setup(), events.slice(0, -1));
+    expect(phaseDuration(undone.phase, undone.regulation)).toBe(60);
+    expect(() => replay(setup(), [...toDay1, { type: 'setTimings', timings: { ...timings, speech: 1 } }])).toThrow(
+      'Речь игрока',
+    );
+  });
+
   it('не дают создать игру с недопустимыми значениями', () => {
     expect(validateTimings(FIIM_REGULATION.timings)).toEqual([]);
     const bad = setup((r) => {

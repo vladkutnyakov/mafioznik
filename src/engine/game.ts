@@ -147,6 +147,12 @@ export function applyEvent(prev: GameState, event: GameEvent): GameState {
     case 'setExtraPoints':
       onSetExtraPoints(s, event.seat, event.value);
       break;
+    case 'setTimings': {
+      const errors = validateTimings(event.timings);
+      if (errors.length) fail(errors.join(' '));
+      s.regulation.timings = { ...event.timings };
+      break;
+    }
   }
   return s;
 }

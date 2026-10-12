@@ -50,7 +50,7 @@ export function PhasePanel({ state, ui, phaseKey, dispatch }: Props) {
         {ui.note && <div className={`note note-${ui.noteTone ?? 'info'}`}>{ui.note}</div>}
 
         {duration !== null && (
-          <Timer key={phaseKey} duration={duration} warningAt={state.regulation.timings.warningAt} />
+          <Timer key={`${phaseKey}:${duration}`} duration={duration} warningAt={state.regulation.timings.warningAt} />
         )}
 
         {ui.custom === 'voting' && state.phase.kind === 'voting' && (

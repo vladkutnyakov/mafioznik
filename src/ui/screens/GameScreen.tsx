@@ -8,6 +8,8 @@ import { MusicControl } from '../game/MusicControl';
 import { ModalOpenContext, blurActive, isEnter, isTyping, seatFromKey, sendTimer } from '../game/keys';
 import { Kbd } from '../game/PhasePanel';
 import { ShortcutsHelp } from '../game/ShortcutsHelp';
+import { TimingsSheet } from '../game/TimingsSheet';
+import { KEYS, kvSet } from '../../storage/db';
 import { PhasePanel } from '../game/PhasePanel';
 import { buildPhaseUi } from '../game/phaseUi';
 import { ResultsView } from '../game/ResultsView';
@@ -40,6 +42,7 @@ export function GameScreen({ initial, onExit, onSave }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showTable, setShowTable] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [timingsOpen, setTimingsOpen] = useState(false);
   const [foulMode, setFoulMode] = useState(false);
   // Ref нужен, чтобы «F» и номер, нажатые подряд, не зависели от перерисовки.
   const foulRef = useRef(false);
@@ -94,7 +97,7 @@ export function GameScreen({ initial, onExit, onSave }: Props) {
   }, [game.error, game.clearError]);
 
   const tablePicks = ui.picker?.tableSelects ? ui.picker : null;
-  const modalOpen = menuSeat !== null || helpOpen || menuOpen;
+  const modalOpen = menuSeat !== null || helpOpen || menuOpen || timingsOpen;
 
   // Режим фола с клавиатуры сам выключается, если номер не нажали.
   useEffect(() => {
@@ -123,13 +126,14 @@ export function GameScreen({ initial, onExit, onSave }: Props) {
 
     if (e.code === 'Escape') {
       if (helpOpen) setHelpOpen(false);
+      else if (timingsOpen) setTimingsOpen(false);
       else if (menuSeat !== null) setMenuSeat(null);
       else if (menuOpen) setMenuOpen(false);
       else if (foulRef.current) setFoul(false);
       else setSelected([]);
       return;
     }
-    if (helpOpen || menuOpen) return;
+    if (helpOpen || menuOpen || timingsOpen) return;
     if (menuSeat !== null) {
       if (e.code === 'KeyF') {
         e.preventDefault();
@@ -239,6 +243,18 @@ export function GameScreen({ initial, onExit, onSave }: Props) {
                   </button>
                   {!state.result && (
                     <>
+                      <button
+                        className="menu-item"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setTimingsOpen(true);
+                        }}
+                      >
+                        Тайминги
+                        <span className="menu-sub">
+                          Речь {state.regulation.timings.speech} с, прощальная {state.regulation.timings.farewell} с
+                        </span>
+                      </button>
                       <div className="menu-sep" />
                       <div className="menu-label">Завершить игру решением ведущего</div>
                       <ConfirmButton className="menu-item" confirmLabel="Нажмите ещё раз" onConfirm={() => finish('red')}>
@@ -319,6 +335,19 @@ export function GameScreen({ initial, onExit, onSave }: Props) {
         )}
   
         {helpOpen && <ShortcutsHelp onClose={() => setHelpOpen(false)} />}
+
+        {timingsOpen && (
+          <TimingsSheet
+            current={state.regulation.timings}
+            onClose={() => setTimingsOpen(false)}
+            onApply={(timings) => {
+              if (game.dispatch({ type: 'setTimings', timings })) {
+                void kvSet(KEYS.lastTimings, timings);
+                setTimingsOpen(false);
+              }
+            }}
+          />
+        )}
   
         {foulMode && (
           <div className="key-banner" role="status">

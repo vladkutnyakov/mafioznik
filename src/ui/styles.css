@@ -508,3 +508,10 @@ h3 {
   font-size: 12px;
   color: var(--warn);
 }
+
+.timings-body-sheet {
+  padding: 0;
+  border-top: none;
+  max-height: 60vh;
+  overflow-y: auto;
+}

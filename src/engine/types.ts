@@ -233,4 +233,6 @@ export type GameEvent =
   | { type: 'disqualify'; seat: number }
   | { type: 'ppk'; seat: number }
   | { type: 'finish'; winner: Team }
-  | { type: 'setExtraPoints'; seat: number; value: number };
+  | { type: 'setExtraPoints'; seat: number; value: number }
+  /** Поменять тайминги посреди игры. */
+  | { type: 'setTimings'; timings: Regulation['timings'] };

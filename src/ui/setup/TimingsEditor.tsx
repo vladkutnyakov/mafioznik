@@ -59,10 +59,28 @@ function TimingInput({ field, value, onChange }: { field: TimingField; value: nu
   );
 }
 
+/** Поля таймингов по группам «День», «Ночь», «Сигнал». */
+export function TimingFields({ value, onChange }: Props) {
+  return (
+    <>
+      {GROUPS.map((g) => (
+        <div key={g.key} className="timings-group">
+          <div className="section-label">{g.title}</div>
+          {TIMING_FIELDS.filter((f) => f.group === g.key).map((f) => (
+            <TimingInput key={f.key} field={f} value={value[f.key]} onChange={(v) => onChange({ ...value, [f.key]: v })} />
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
+
+export const timingsChanged = (value: Timings) => TIMING_FIELDS.filter((f) => value[f.key] !== DEFAULTS[f.key]).length;
+
 /** Настройки таймингов на экране новой игры. Свёрнуты в одну строку, пока их не открыли. */
 export function TimingsEditor({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
-  const changed = TIMING_FIELDS.filter((f) => value[f.key] !== DEFAULTS[f.key]).length;
+  const changed = timingsChanged(value);
   const s = (v: number) => (Number.isFinite(v) ? `${v} с` : '—');
 
   return (
@@ -83,14 +101,7 @@ export function TimingsEditor({ value, onChange }: Props) {
 
       {open && (
         <div className="timings-body">
-          {GROUPS.map((g) => (
-            <div key={g.key} className="timings-group">
-              <div className="section-label">{g.title}</div>
-              {TIMING_FIELDS.filter((f) => f.group === g.key).map((f) => (
-                <TimingInput key={f.key} field={f} value={value[f.key]} onChange={(v) => onChange({ ...value, [f.key]: v })} />
-              ))}
-            </div>
-          ))}
+          <TimingFields value={value} onChange={onChange} />
           <div className="timings-actions">
             <button className="btn" disabled={changed === 0} onClick={() => onChange({ ...DEFAULTS })}>
               Вернуть как в ФИИМ
