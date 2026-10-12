@@ -17,7 +17,13 @@ export const ROLE_COUNTS: Record<Role, number> = {
   don: 1,
 };
 
+/** Стандартный стол. Число игроков в конкретной игре берётся из рассадки. */
 export const SEAT_COUNT = 10;
+export const MIN_SEATS = 7;
+export const MAX_SEATS = 10;
+
+/** Состав ролей: сколько игроков каждой роли за столом. */
+export type Composition = Record<Role, number>;
 
 /** Регламент: все настраиваемые правила игры. */
 export interface Regulation {
@@ -91,6 +97,8 @@ export interface GameSetup {
   regulation: Regulation;
   /** Места по порядку: индекс 0 = место №1. */
   seats: SeatSetup[];
+  /** Состав ролей. Если не указан (старые партии), это стандарт на 10 игроков. */
+  composition?: Composition;
 }
 
 export type SeatStatus = 'alive' | 'killed' | 'voted' | 'removed';
@@ -196,6 +204,7 @@ export interface GameResult {
 
 export interface GameState {
   regulation: Regulation;
+  composition: Composition;
   seats: SeatState[];
   phase: Phase;
   queue: QueueItem[];

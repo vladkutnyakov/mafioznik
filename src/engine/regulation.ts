@@ -1,4 +1,4 @@
-import type { Regulation } from './types';
+import { MAX_SEATS, MIN_SEATS, ROLE_COUNTS, type Composition, type Regulation } from './types';
 
 /**
  * Базовый регламент по правилам ФИИМ.
@@ -82,6 +82,44 @@ export function validateTimings(t: Timings): string[] {
     if (!Number.isInteger(v) || v < f.min || v > f.max) {
       errors.push(`${f.label}: нужно целое число секунд от ${f.min} до ${f.max}.`);
     }
+  }
+  return errors;
+}
+
+// ---------- состав ролей ----------
+
+/** Составы по умолчанию для каждого числа игроков. Ведущий может их поменять. */
+export const COMPOSITION_PRESETS: Record<number, Composition> = {
+  7: { civilian: 4, sheriff: 1, mafia: 1, don: 1 },
+  8: { civilian: 5, sheriff: 1, mafia: 1, don: 1 },
+  9: { civilian: 5, sheriff: 1, mafia: 2, don: 1 },
+  10: { ...ROLE_COUNTS },
+};
+
+export function compositionFor(players: number): Composition {
+  return { ...(COMPOSITION_PRESETS[players] ?? ROLE_COUNTS) };
+}
+
+export const compositionSize = (c: Composition) => c.civilian + c.sheriff + c.mafia + c.don;
+export const compositionReds = (c: Composition) => c.civilian + c.sheriff;
+export const compositionBlacks = (c: Composition) => c.mafia + c.don;
+
+/** Ошибки в составе ролей для стола из players игроков. */
+export function validateComposition(c: Composition, players: number): string[] {
+  const errors: string[] = [];
+  if (players < MIN_SEATS || players > MAX_SEATS) {
+    errors.push(`За столом может быть от ${MIN_SEATS} до ${MAX_SEATS} игроков, сейчас ${players}.`);
+  }
+  const roles = Object.values(c);
+  if (roles.some((n) => !Number.isInteger(n) || n < 0)) errors.push('Число игроков каждой роли — целое неотрицательное.');
+  const total = compositionSize(c);
+  if (total !== players) errors.push(`В составе ${total} ролей, а игроков ${players}.`);
+  if (c.sheriff > 1) errors.push('Шериф может быть только один.');
+  if (c.don > 1) errors.push('Дон может быть только один.');
+  if (c.civilian < 1) errors.push('Нужен хотя бы один мирный житель.');
+  if (compositionBlacks(c) < 1) errors.push('Нужен хотя бы один чёрный игрок.');
+  if (compositionReds(c) <= compositionBlacks(c)) {
+    errors.push('Красных должно быть больше, чем чёрных, иначе мафия победит сразу.');
   }
   return errors;
 }

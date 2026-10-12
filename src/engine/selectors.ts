@@ -36,8 +36,8 @@ export function aliveByTeam(s: GameState): Record<Team, number> {
 }
 
 /** Места по кругу, начиная с `start` включительно. */
-export function seatsFrom(start: number): number[] {
-  return Array.from({ length: SEAT_COUNT }, (_, i) => ((start - 1 + i) % SEAT_COUNT) + 1);
+export function seatsFrom(start: number, count: number = SEAT_COUNT): number[] {
+  return Array.from({ length: count }, (_, i) => ((start - 1 + i) % count) + 1);
 }
 
 /** Кандидаты текущего дня в порядке выставления (только живые). */
@@ -62,6 +62,11 @@ export function currentNight(s: GameState): NightRecord | undefined {
 export function actsTonight(s: GameState, seat: SeatState): boolean {
   if (isAlive(seat)) return true;
   return seat.status === 'killed' && currentNight(s)?.kill === seat.seat;
+}
+
+/** Есть ли такая роль в составе этой игры вообще (независимо от того, жив ли игрок). */
+export function gameHasRole(s: GameState, role: Role): boolean {
+  return s.seats.some((x) => x.role === role);
 }
 
 export function seatWithRole(s: GameState, role: Role): SeatState | undefined {

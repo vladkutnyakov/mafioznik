@@ -1,5 +1,5 @@
 import { ROLE_NAMES, describePhase } from './labels';
-import { validateTimings } from './regulation';
+import { validateComposition, validateTimings } from './regulation';
 import {
   actsTonight,
   aliveByTeam,
@@ -7,6 +7,7 @@ import {
   currentCandidates,
   currentNight,
   isAlive,
+  gameHasRole,
   isDayPhase,
   nightCheckerActive,
   nominatedBy,
@@ -16,7 +17,6 @@ import {
 } from './selectors';
 import {
   ROLE_COUNTS,
-  SEAT_COUNT,
   type FinishReason,
   type GameEvent,
   type GameResult,
@@ -46,13 +46,15 @@ function fail(message: string): never {
 
 export function validateSetup(setup: GameSetup): string[] {
   const errors: string[] = [];
-  if (setup.seats.length !== SEAT_COUNT) {
-    errors.push(`Нужно ровно ${SEAT_COUNT} игроков, сейчас ${setup.seats.length}.`);
-  }
-  for (const role of Object.keys(ROLE_COUNTS) as Role[]) {
-    const n = setup.seats.filter((s) => s.role === role).length;
-    if (n !== ROLE_COUNTS[role]) {
-      errors.push(`Роль «${ROLE_NAMES[role]}»: нужно ${ROLE_COUNTS[role]}, сейчас ${n}.`);
+  const composition = setup.composition ?? ROLE_COUNTS;
+  const compositionErrors = validateComposition(composition, setup.seats.length);
+  errors.push(...compositionErrors);
+  if (compositionErrors.length === 0) {
+    for (const role of Object.keys(composition) as Role[]) {
+      const n = setup.seats.filter((s) => s.role === role).length;
+      if (n !== composition[role]) {
+        errors.push(`Роль «${ROLE_NAMES[role]}»: нужно ${composition[role]}, сейчас ${n}.`);
+      }
     }
   }
   setup.seats.forEach((s, i) => {
@@ -69,6 +71,7 @@ export function createGame(setup: GameSetup): GameState {
   if (errors.length) fail(errors.join(' '));
   return {
     regulation: structuredClone(setup.regulation),
+    composition: { ...(setup.composition ?? ROLE_COUNTS) },
     seats: setup.seats.map((s, i) => ({
       seat: i + 1,
       player: { ...s.player },
@@ -199,8 +202,8 @@ function phaseError(s: GameState): never {
   fail(`Действие недоступно сейчас: ${describePhase(s).title}.`);
 }
 
-function checkSeatNumber(seat: number): void {
-  if (!Number.isInteger(seat) || seat < 1 || seat > SEAT_COUNT) fail(`Нет места №${seat}.`);
+function checkSeatNumber(s: GameState, seat: number): void {
+  if (!Number.isInteger(seat) || seat < 1 || seat > s.seats.length) fail(`Нет места №${seat}.`);
 }
 
 function onAdvance(s: GameState): void {
@@ -214,7 +217,7 @@ function onAdvance(s: GameState): void {
 function onNominate(s: GameState, target: number): void {
   const p = s.phase;
   if (p.kind !== 'speech') phaseError(s);
-  checkSeatNumber(target);
+  checkSeatNumber(s, target);
   const reg = s.regulation.nominations;
   if (!isAlive(seatOf(s, target))) fail(`Игрок №${target} уже выбыл.`);
   if (!reg.allowSelf && target === p.seat) fail('Нельзя выставить себя.');
@@ -227,7 +230,7 @@ function onCancelNomination(s: GameState, target: number): void {
   const p = s.phase;
   const allowed = p.kind === 'speech' || (p.kind === 'voting' && p.round === 'main');
   if (!allowed) fail('Снять выставление можно только во время речей или до начала голосования.');
-  checkSeatNumber(target);
+  checkSeatNumber(s, target);
   const idx = s.nominations.findIndex((n) => n.day === s.day && n.target === target);
   if (idx < 0) fail(`Игрок №${target} не выставлен.`);
   s.nominations.splice(idx, 1);
@@ -289,7 +292,7 @@ function onShoot(s: GameState, target: number | null): void {
   const night = currentNight(s);
   if (!night) throw new Error('Нет записи текущей ночи.');
   if (target !== null) {
-    checkSeatNumber(target);
+    checkSeatNumber(s, target);
     const seat = seatOf(s, target);
     if (!isAlive(seat)) fail(`Игрок №${target} уже выбыл.`);
     seat.status = 'killed';
@@ -306,7 +309,7 @@ function onCheck(s: GameState, target: number): void {
   if (!nightCheckerActive(s, p.step)) {
     fail(`${p.step === 'donCheck' ? 'Дон' : 'Шериф'} выбыл: проверки нет, выдержите паузу.`);
   }
-  checkSeatNumber(target);
+  checkSeatNumber(s, target);
   const night = currentNight(s);
   if (!night) throw new Error('Нет записи текущей ночи.');
   const seat = seatOf(s, target);
@@ -320,7 +323,7 @@ function onBestMove(s: GameState, targets: number[]): void {
   const p = s.phase;
   if (p.kind !== 'bestMove') phaseError(s);
   if (targets.length > 3) fail('В лучшем ходе не больше трёх номеров.');
-  targets.forEach(checkSeatNumber);
+  targets.forEach((t) => checkSeatNumber(s, t));
   if (new Set(targets).size !== targets.length) fail('Номера в лучшем ходе не должны повторяться.');
   if (targets.includes(p.seat)) fail('Нельзя назвать себя в лучшем ходе.');
   const blacks = targets.filter((t) => teamOf(seatOf(s, t)) === 'black').length;
@@ -329,7 +332,7 @@ function onBestMove(s: GameState, targets: number[]): void {
 }
 
 function onFoul(s: GameState, seatNumber: number): void {
-  checkSeatNumber(seatNumber);
+  checkSeatNumber(s, seatNumber);
   const seat = seatOf(s, seatNumber);
   if (seat.status === 'removed') fail(`Игрок №${seatNumber} удалён.`);
   seat.fouls += 1;
@@ -341,13 +344,13 @@ function onFoul(s: GameState, seatNumber: number): void {
 }
 
 function onDisqualify(s: GameState, seatNumber: number): void {
-  checkSeatNumber(seatNumber);
+  checkSeatNumber(s, seatNumber);
   if (!isAlive(seatOf(s, seatNumber))) fail(`Игрок №${seatNumber} уже выбыл.`);
   removePlayer(s, seatNumber, 'disqualification');
 }
 
 function onPpk(s: GameState, seatNumber: number): void {
-  checkSeatNumber(seatNumber);
+  checkSeatNumber(s, seatNumber);
   const seat = seatOf(s, seatNumber);
   s.sanctions.push({ seat: seatNumber, day: s.day, kind: 'ppk' });
   if (isAlive(seat)) {
@@ -359,7 +362,7 @@ function onPpk(s: GameState, seatNumber: number): void {
 
 function onSetExtraPoints(s: GameState, seatNumber: number, value: number): void {
   if (!s.result) fail('Доп. баллы выставляются после завершения игры.');
-  checkSeatNumber(seatNumber);
+  checkSeatNumber(s, seatNumber);
   const { extraMin, extraMax } = s.regulation.scoring;
   if (!Number.isFinite(value) || value < extraMin || value > extraMax) {
     fail(`Доп. баллы должны быть от ${extraMin} до ${extraMax}.`);
@@ -415,6 +418,18 @@ function popNext(s: GameState): void {
         if (seatOf(s, item.seat).status === 'removed') continue;
         s.phase = item;
         return;
+      case 'night0':
+        // Роли нет в составе этой игры: фаза не нужна, состав известен всем заранее.
+        if (item.step === 'donMeet' && !gameHasRole(s, 'don')) continue;
+        if (item.step === 'sheriffMeet' && !gameHasRole(s, 'sheriff')) continue;
+        s.phase = item;
+        return;
+      case 'night':
+        // Выбывший дон или шериф: фаза остаётся, чтобы не выдать выбывание. Роли нет в составе: фазы нет.
+        if (item.step === 'donCheck' && !gameHasRole(s, 'don')) continue;
+        if (item.step === 'sheriffCheck' && !gameHasRole(s, 'sheriff')) continue;
+        s.phase = item;
+        return;
       default:
         s.phase = item;
         return;
@@ -424,8 +439,8 @@ function popNext(s: GameState): void {
 
 function startDay(s: GameState): void {
   s.day += 1;
-  const from = s.dayOpener === null ? 1 : (s.dayOpener % SEAT_COUNT) + 1;
-  const order = seatsFrom(from).filter((n) => isAlive(seatOf(s, n)));
+  const from = s.dayOpener === null ? 1 : (s.dayOpener % s.seats.length) + 1;
+  const order = seatsFrom(from, s.seats.length).filter((n) => isAlive(seatOf(s, n)));
   s.dayOpener = order[0] ?? null;
   s.queue.unshift(
     ...order.map((seat): QueueItem => ({ kind: 'speech', seat, shortened: false })),
