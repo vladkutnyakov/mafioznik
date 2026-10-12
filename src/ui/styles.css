@@ -854,3 +854,25 @@ button.ctl:hover:not(:disabled):not(.is-on) {
     margin-right: 0;
   }
 }
+
+/* Самые низкие экраны: отступы экрана новой игры меньше. */
+@media (max-height: 700px) {
+  .screen.setup {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .setup .setup-head {
+    margin-bottom: 8px;
+  }
+  .composition {
+    padding: 10px 14px;
+    gap: 8px 20px;
+  }
+  .setup .setup-grid,
+  .setup .setup-foot {
+    margin-top: 8px;
+  }
+  .setup-errors {
+    margin-top: 6px;
+  }
+}

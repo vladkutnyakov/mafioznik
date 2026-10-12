@@ -44,6 +44,8 @@ export function ResultsView({ state, dispatch, onSave, onShowTable }: Props) {
         </button>
       </div>
 
+      {/* Таблица баллов и ход игры рядом: таблица всегда на виду, длинный ход игры прокручивается в своей колонке. */}
+      <div className="results-body">
       <table className="score-table">
         <thead>
           <tr>
@@ -101,6 +103,7 @@ export function ResultsView({ state, dispatch, onSave, onShowTable }: Props) {
       </table>
 
       <GameLog state={state} />
+      </div>
     </div>
   );
 }

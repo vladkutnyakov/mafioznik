@@ -79,6 +79,7 @@ export function MusicScreen({ onBack }: Props) {
         этом устройстве.
       </p>
 
+      <div className="music-cols">
       <section className="card music-card">
         <div className="music-card-head">
           <div>
@@ -229,6 +230,7 @@ export function MusicScreen({ onBack }: Props) {
           />
         </div>
       </section>
+      </div>
     </div>
   );
 }

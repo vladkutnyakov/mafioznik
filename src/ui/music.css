@@ -201,3 +201,39 @@ label.btn.is-busy {
   background: var(--accent);
   margin-right: 0;
 }
+
+/* ---------- музыка: композиции и настройки в две колонки ---------- */
+
+.music {
+  max-width: 1120px;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.music-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.music-card {
+  padding: 16px 18px;
+  gap: 12px;
+}
+
+/* Длинный список композиций прокручивается внутри карточки, а не всей страницей. */
+.track-list {
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .music-cols {
+    grid-template-columns: 1fr;
+  }
+  .track-list {
+    max-height: none;
+    overflow: visible;
+  }
+}

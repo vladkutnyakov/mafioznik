@@ -1404,3 +1404,98 @@
     visibility: hidden;
   }
 }
+
+/* ---------- итоги: таблица и ход игры рядом ---------- */
+
+.results {
+  padding: 14px 18px 18px;
+  gap: 12px;
+}
+
+.results-head {
+  padding: 10px 16px;
+}
+
+.results-winner {
+  font-size: 24px;
+}
+
+.results-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Ход игры может быть длинным: прокручивается своя колонка, а не весь экран. */
+.results-body .game-log {
+  grid-template-columns: 1fr;
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+}
+
+.score-table {
+  border-spacing: 0 4px;
+}
+
+.score-table td {
+  padding: 4px 10px;
+  font-size: 16px;
+}
+
+.score-table .num {
+  font-size: 18px;
+}
+
+.score-table .total {
+  font-size: 18px;
+}
+
+.stepper .icon-btn {
+  min-width: 38px;
+  min-height: 38px;
+}
+
+@media (pointer: coarse) {
+  .stepper .icon-btn {
+    min-width: 42px;
+    min-height: 42px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .results-body {
+    grid-template-columns: 1fr;
+  }
+  .results-body .game-log {
+    max-height: none;
+    overflow: visible;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+/* Низкие экраны: строки таблицы итогов плотнее, чтобы все 10 игроков помещались. */
+@media (max-height: 760px) {
+  .score-table td {
+    padding: 2px 10px;
+  }
+  .results-head {
+    padding: 8px 14px;
+  }
+  .results-head .btn-lg {
+    min-height: 48px;
+  }
+}
+
+@media (max-height: 760px) and (pointer: fine) {
+  .stepper .icon-btn {
+    min-width: 32px;
+    min-height: 32px;
+  }
+}
+
+@media (max-width: 960px) {
+  .score-table td {
+    padding: 3px 8px;
+  }
+}
