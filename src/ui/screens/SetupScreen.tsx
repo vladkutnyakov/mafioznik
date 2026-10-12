@@ -1,16 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   FIIM_REGULATION,
-  ROLE_COUNTS,
+  MAX_SEATS,
+  MIN_SEATS,
   ROLE_NAMES,
   ROLE_TEAM,
   SEAT_COUNT,
+  compositionFor,
+  validateComposition,
   validateSetup,
+  type Composition,
   type GameSetup,
   type Role,
   type Timings,
 } from '../../engine';
 import { KEYS, kvGet, kvSet } from '../../storage/db';
+import { CompositionEditor } from '../setup/CompositionEditor';
 import { TimingsEditor } from '../setup/TimingsEditor';
 
 interface Props {
@@ -26,7 +31,7 @@ interface Row {
 const ROLE_ORDER: Role[] = ['civilian', 'sheriff', 'mafia', 'don'];
 const ROLE_SHORT: Record<Role, string> = { civilian: 'Мир', sheriff: 'Шер', mafia: 'Маф', don: 'Дон' };
 
-const emptyRows = (): Row[] => Array.from({ length: SEAT_COUNT }, () => ({ nickname: '', role: 'civilian' }));
+const emptyRows = (n: number): Row[] => Array.from({ length: n }, () => ({ nickname: '', role: 'civilian' }));
 
 function shuffle<T>(items: T[]): T[] {
   const a = [...items];
@@ -37,37 +42,51 @@ function shuffle<T>(items: T[]): T[] {
   return a;
 }
 
-function randomRoles(): Role[] {
-  const pool = ROLE_ORDER.flatMap((r) => Array<Role>(ROLE_COUNTS[r]).fill(r));
+function randomRoles(composition: Composition): Role[] {
+  const pool = ROLE_ORDER.flatMap((r) => Array<Role>(composition[r]).fill(r));
   return shuffle(pool);
 }
 
 export function SetupScreen({ onBack, onStart }: Props) {
-  const [rows, setRows] = useState<Row[]>(emptyRows);
+  const [rows, setRows] = useState<Row[]>(() => emptyRows(SEAT_COUNT));
+  const [composition, setComposition] = useState<Composition>(() => compositionFor(SEAT_COUNT));
   const [known, setKnown] = useState<string[]>([]);
   const [starting, setStarting] = useState(false);
   const [timings, setTimings] = useState<Timings>({ ...FIIM_REGULATION.timings });
+  const players = rows.length;
 
-  // Подставляем состав прошлой игры: за вечер обычно играют одни и те же люди.
+  // Подставляем стол прошлой игры: за вечер обычно играют одни и те же люди и тем же составом.
   useEffect(() => {
-    void Promise.all([kvGet<string[]>(KEYS.lastLineup), kvGet<string[]>(KEYS.knownNicknames)]).then(
-      ([lineup, names]) => {
-        if (lineup?.length === SEAT_COUNT) setRows(lineup.map((nickname) => ({ nickname, role: 'civilian' })));
-        setKnown(names ?? []);
-      },
-    );
-    // Тайминги прошлой игры: клуб обычно играет по одним и тем же.
-    void kvGet<Partial<Timings>>(KEYS.lastTimings).then((saved) => {
-      if (saved) setTimings({ ...FIIM_REGULATION.timings, ...saved });
+    void Promise.all([
+      kvGet<string[]>(KEYS.lastLineup),
+      kvGet<string[]>(KEYS.knownNicknames),
+      kvGet<Composition>(KEYS.lastComposition),
+      kvGet<Partial<Timings>>(KEYS.lastTimings),
+    ]).then(([lineup, names, savedComposition, savedTimings]) => {
+      if (lineup && lineup.length >= MIN_SEATS && lineup.length <= MAX_SEATS) {
+        setRows(lineup.map((nickname) => ({ nickname, role: 'civilian' })));
+        const fits = savedComposition && validateComposition(savedComposition, lineup.length).length === 0;
+        setComposition(fits ? savedComposition : compositionFor(lineup.length));
+      }
+      setKnown(names ?? []);
+      if (savedTimings) setTimings({ ...FIIM_REGULATION.timings, ...savedTimings });
     });
   }, []);
+
+  /** Меняет число мест: ники сохраняются, роли сбрасываются, состав — по умолчанию для этого стола. */
+  const changePlayers = (n: number) => {
+    if (n === players) return;
+    setRows((prev) => Array.from({ length: n }, (_, i) => ({ nickname: prev[i]?.nickname ?? '', role: 'civilian' })));
+    setComposition(compositionFor(n));
+  };
 
   const setup: GameSetup = useMemo(
     () => ({
       regulation: { ...FIIM_REGULATION, timings },
+      composition,
       seats: rows.map((r) => ({ player: { nickname: r.nickname.trim() }, role: r.role })),
     }),
-    [rows, timings],
+    [rows, timings, composition],
   );
 
   const errors = useMemo(() => {
@@ -76,6 +95,8 @@ export function SetupScreen({ onBack, onStart }: Props) {
     if (new Set(names).size !== names.length) list.push('Есть повторяющиеся ники.');
     return list;
   }, [setup, rows]);
+
+  const compositionValid = validateComposition(composition, players).length === 0;
 
   const counts = useMemo(() => {
     const c: Record<Role, number> = { civilian: 0, sheriff: 0, mafia: 0, don: 0 };
@@ -95,6 +116,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
       kvSet(KEYS.lastLineup, nicknames),
       kvSet(KEYS.knownNicknames, merged),
       kvSet(KEYS.lastTimings, timings),
+      kvSet(KEYS.lastComposition, composition),
     ]);
     await onStart(setup);
   };
@@ -110,11 +132,18 @@ export function SetupScreen({ onBack, onStart }: Props) {
         <span className="muted">Регламент: {FIIM_REGULATION.name}</span>
       </div>
 
-      <div className="row wrap" style={{ marginBottom: 16 }}>
+      <CompositionEditor
+        players={players}
+        composition={composition}
+        onPlayers={changePlayers}
+        onComposition={setComposition}
+      />
+
+      <div className="row wrap" style={{ margin: '16px 0' }}>
         <div className="counters">
-          {ROLE_ORDER.map((r) => (
-            <span key={r} className={`counter ${counts[r] === ROLE_COUNTS[r] ? 'is-ok' : 'is-bad'}`}>
-              {ROLE_NAMES[r]}: {counts[r]}/{ROLE_COUNTS[r]}
+          {ROLE_ORDER.filter((r) => composition[r] > 0 || counts[r] > 0).map((r) => (
+            <span key={r} className={`counter ${counts[r] === composition[r] ? 'is-ok' : 'is-bad'}`}>
+              {ROLE_NAMES[r]}: {counts[r]}/{composition[r]}
             </span>
           ))}
         </div>
@@ -124,8 +153,9 @@ export function SetupScreen({ onBack, onStart }: Props) {
         </button>
         <button
           className="btn"
+          disabled={!compositionValid}
           onClick={() => {
-            const roles = randomRoles();
+            const roles = randomRoles(composition);
             setRows((prev) => prev.map((r, i) => ({ ...r, role: roles[i]! })));
           }}
         >
@@ -140,7 +170,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
         >
           Перемешать места
         </button>
-        <button className="btn btn-ghost" onClick={() => setRows(emptyRows())}>
+        <button className="btn btn-ghost" onClick={() => setRows(emptyRows(players))}>
           Очистить
         </button>
       </div>
@@ -174,7 +204,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
               }}
             />
             <div className="role-picker" role="radiogroup" aria-label={`Роль места ${i + 1}`}>
-              {ROLE_ORDER.map((r) => (
+              {ROLE_ORDER.filter((r) => composition[r] > 0 || row.role === r).map((r) => (
                 <button
                   key={r}
                   role="radio"

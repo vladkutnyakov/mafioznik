@@ -1,4 +1,4 @@
-import { pendingResult } from './selectors';
+import { gameHasRole, pendingResult } from './selectors';
 import type { FinishReason, GameState, Role, Team } from './types';
 
 export const ROLE_NAMES: Record<Role, string> = {
@@ -46,7 +46,7 @@ function describeBase(s: GameState): PhaseDescription {
         return { title: 'Ночь 0 · Договорка', prompt: 'Наступает ночь. Мафия просыпается и договаривается.' };
       if (p.step === 'donMeet')
         return { title: 'Ночь 0 · Дон', prompt: 'Мафия засыпает. Дон просыпается и знакомится с ведущим.' };
-      return { title: 'Ночь 0 · Шериф', prompt: 'Дон засыпает. Шериф просыпается и смотрит на город.' };
+      return { title: 'Ночь 0 · Шериф', prompt: `${gameHasRole(s, 'don') ? 'Дон' : 'Мафия'} засыпает. Шериф просыпается и смотрит на город.` };
     case 'speech':
       return {
         title: `${day} · Речь №${p.seat}`,
@@ -79,7 +79,10 @@ function describeBase(s: GameState): PhaseDescription {
         return { title: `${night} · Стрельба`, prompt: 'Наступает ночь. Мафия выходит на охоту.' };
       if (p.step === 'donCheck')
         return { title: `${night} · Проверка дона`, prompt: 'Мафия засыпает. Дон просыпается и ищет шерифа.' };
-      return { title: `${night} · Проверка шерифа`, prompt: 'Дон засыпает. Шериф просыпается и делает проверку.' };
+      return {
+        title: `${night} · Проверка шерифа`,
+        prompt: `${gameHasRole(s, 'don') ? 'Дон' : 'Мафия'} засыпает. Шериф просыпается и делает проверку.`,
+      };
     case 'morning':
       return {
         title: `Утро · День ${s.day + 1}`,

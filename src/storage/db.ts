@@ -104,4 +104,5 @@ export const KEYS = {
   lastLineup: 'lastLineup',
   knownNicknames: 'knownNicknames',
   lastTimings: 'lastTimings',
+  lastComposition: 'lastComposition',
 } as const;

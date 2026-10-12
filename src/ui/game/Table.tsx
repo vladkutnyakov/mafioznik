@@ -10,8 +10,9 @@ interface Props {
 }
 
 /** Место на овале: №1 слева от ведущего (ведущий внизу), дальше по часовой стрелке. */
-function seatPosition(seat: number): { left: string; top: string } {
-  const angle = ((90 + (seat - 0.5) * 36) * Math.PI) / 180;
+function seatPosition(seat: number, count: number): { left: string; top: string } {
+  const step = 360 / count;
+  const angle = ((90 + (seat - 0.5) * step) * Math.PI) / 180;
   return {
     left: `${50 + 40 * Math.cos(angle)}%`,
     top: `${50 + 39 * Math.sin(angle)}%`,
@@ -115,7 +116,7 @@ export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Pro
           <button
             key={seat.seat}
             className={classes}
-            style={seatPosition(seat.seat)}
+            style={seatPosition(seat.seat, state.seats.length)}
             disabled={Boolean(selectable) && !canSelect}
             onClick={() => onSeatTap(seat.seat)}
           >

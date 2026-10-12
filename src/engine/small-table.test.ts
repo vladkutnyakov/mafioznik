@@ -3,6 +3,7 @@ import {
   FIIM_REGULATION,
   compositionFor,
   createGame,
+  describePhase,
   replay,
   validateComposition,
   validateSetup,
@@ -89,6 +90,7 @@ describe('состав без дона или шерифа', () => {
   it('фазы дона пропускаются целиком', () => {
     let s = replay(noDon, adv(1));
     expect(s.phase).toEqual({ kind: 'night0', step: 'sheriffMeet' });
+    expect(describePhase(s).prompt).toBe('Мафия засыпает. Шериф просыпается и смотрит на город.');
     s = replay(noDon, [...adv(2 + 7), { type: 'shoot', target: 1 }]);
     expect(s.phase).toEqual({ kind: 'night', step: 'sheriffCheck' });
   });
