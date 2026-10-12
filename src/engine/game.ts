@@ -1,4 +1,5 @@
 import { ROLE_NAMES, describePhase } from './labels';
+import { validateTimings } from './regulation';
 import {
   actsTonight,
   aliveByTeam,
@@ -59,6 +60,7 @@ export function validateSetup(setup: GameSetup): string[] {
   });
   const ids = setup.seats.map((s) => s.player.id).filter((id): id is string => Boolean(id));
   if (new Set(ids).size !== ids.length) errors.push('Один игрок посажен на несколько мест.');
+  errors.push(...validateTimings(setup.regulation.timings));
   return errors;
 }
 

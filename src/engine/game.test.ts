@@ -9,6 +9,7 @@ import {
   replay,
   tryReplay,
   validateSetup,
+  validateTimings,
   type GameEvent,
   type GameSetup,
   type Regulation,
@@ -51,6 +52,37 @@ describe('создание игры', () => {
     expect(s.day).toBe(1);
     expect(s.phase).toEqual({ kind: 'speech', seat: 1, shortened: false });
     expect(describePhase(s).title).toBe('День 1 · Речь №1');
+  });
+});
+
+describe('тайминги', () => {
+  it('используют длительности из регламента игры', () => {
+    const st = setup((r) => {
+      r.timings.speech = 45;
+      r.timings.mafiaMeet = 90;
+    });
+    expect(phaseDuration(createGame(st).phase, st.regulation)).toBe(90);
+    const s = replay(st, toDay1);
+    expect(phaseDuration(s.phase, s.regulation)).toBe(45);
+  });
+
+  it('ноль означает фазу без таймера', () => {
+    const st = setup((r) => {
+      r.timings.donMeet = 0;
+    });
+    const s = replay(st, adv(1));
+    expect(s.phase).toEqual({ kind: 'night0', step: 'donMeet' });
+    expect(phaseDuration(s.phase, s.regulation)).toBeNull();
+  });
+
+  it('не дают создать игру с недопустимыми значениями', () => {
+    expect(validateTimings(FIIM_REGULATION.timings)).toEqual([]);
+    const bad = setup((r) => {
+      r.timings.speech = 0;
+      r.timings.warningAt = 7.5;
+    });
+    expect(validateTimings(bad.regulation.timings)).toHaveLength(2);
+    expect(() => createGame(bad)).toThrow('Речь игрока');
   });
 });
 

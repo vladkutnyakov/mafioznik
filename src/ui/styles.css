@@ -369,3 +369,142 @@ h3 {
 .home-link {
   justify-content: space-between;
 }
+
+/* ---------- тайминги ---------- */
+
+.timings {
+  margin-top: 20px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.timings-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  flex-wrap: wrap;
+}
+
+.timings-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timings-badge {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.timings-badge.is-changed {
+  color: var(--warn);
+}
+
+.timings-summary {
+  flex: 1;
+  min-width: 220px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.timings-toggle {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.timings-body {
+  padding: 4px 20px 20px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 8px 32px;
+}
+
+.timings-group {
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timings-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+.timing {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 12px;
+}
+
+.timing-label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+}
+
+.timing-hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.timing-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timing-control .btn {
+  min-height: 44px;
+}
+
+.timing-input {
+  width: 64px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  -moz-appearance: textfield;
+}
+
+.timing-input::-webkit-outer-spin-button,
+.timing-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.timing-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.timing.is-invalid .timing-input {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.timing-unit {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.timing-default {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--warn);
+}

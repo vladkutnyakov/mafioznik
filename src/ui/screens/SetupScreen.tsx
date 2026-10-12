@@ -8,8 +8,10 @@ import {
   validateSetup,
   type GameSetup,
   type Role,
+  type Timings,
 } from '../../engine';
 import { KEYS, kvGet, kvSet } from '../../storage/db';
+import { TimingsEditor } from '../setup/TimingsEditor';
 
 interface Props {
   onBack: () => void;
@@ -44,6 +46,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
   const [rows, setRows] = useState<Row[]>(emptyRows);
   const [known, setKnown] = useState<string[]>([]);
   const [starting, setStarting] = useState(false);
+  const [timings, setTimings] = useState<Timings>({ ...FIIM_REGULATION.timings });
 
   // Подставляем состав прошлой игры: за вечер обычно играют одни и те же люди.
   useEffect(() => {
@@ -53,14 +56,18 @@ export function SetupScreen({ onBack, onStart }: Props) {
         setKnown(names ?? []);
       },
     );
+    // Тайминги прошлой игры: клуб обычно играет по одним и тем же.
+    void kvGet<Partial<Timings>>(KEYS.lastTimings).then((saved) => {
+      if (saved) setTimings({ ...FIIM_REGULATION.timings, ...saved });
+    });
   }, []);
 
   const setup: GameSetup = useMemo(
     () => ({
-      regulation: FIIM_REGULATION,
+      regulation: { ...FIIM_REGULATION, timings },
       seats: rows.map((r) => ({ player: { nickname: r.nickname.trim() }, role: r.role })),
     }),
-    [rows],
+    [rows, timings],
   );
 
   const errors = useMemo(() => {
@@ -84,7 +91,11 @@ export function SetupScreen({ onBack, onStart }: Props) {
     setStarting(true);
     const nicknames = rows.map((r) => r.nickname.trim());
     const merged = Array.from(new Set([...nicknames, ...known])).slice(0, 500);
-    await Promise.all([kvSet(KEYS.lastLineup, nicknames), kvSet(KEYS.knownNicknames, merged)]);
+    await Promise.all([
+      kvSet(KEYS.lastLineup, nicknames),
+      kvSet(KEYS.knownNicknames, merged),
+      kvSet(KEYS.lastTimings, timings),
+    ]);
     await onStart(setup);
   };
 
@@ -180,6 +191,8 @@ export function SetupScreen({ onBack, onStart }: Props) {
           </div>
         ))}
       </div>
+
+      <TimingsEditor value={timings} onChange={setTimings} />
 
       <div className="setup-foot">
         <button className="btn btn-primary btn-lg" disabled={errors.length > 0 || starting} onClick={start}>

@@ -102,6 +102,12 @@ export function isDayPhase(phase: Phase): boolean {
 
 /** Длительность таймера для фазы в секундах. null — фаза без таймера. */
 export function phaseDuration(phase: Phase, reg: Regulation): number | null {
+  const d = rawDuration(phase, reg);
+  // Ноль в настройках означает «без таймера».
+  return d !== null && d > 0 ? d : null;
+}
+
+function rawDuration(phase: Phase, reg: Regulation): number | null {
   const t = reg.timings;
   switch (phase.kind) {
     case 'night0':

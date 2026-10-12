@@ -48,3 +48,40 @@ export const FIIM_REGULATION: Regulation = {
     ppkPenalty: 0.7,
   },
 };
+
+export type Timings = Regulation['timings'];
+
+/** Описание настроек таймингов: подпись, допустимые значения, шаг для кнопок. */
+export interface TimingField {
+  key: keyof Timings;
+  label: string;
+  hint?: string;
+  group: 'day' | 'night' | 'signal';
+  min: number;
+  max: number;
+  step: number;
+}
+
+export const TIMING_FIELDS: TimingField[] = [
+  { key: 'speech', label: 'Речь игрока', group: 'day', min: 10, max: 300, step: 5 },
+  { key: 'tieSpeech', label: 'Оправдательная речь', hint: 'При попиле', group: 'day', min: 5, max: 300, step: 5 },
+  { key: 'farewell', label: 'Прощальная речь', group: 'day', min: 10, max: 300, step: 5 },
+  { key: 'shortSpeech', label: 'Сокращённая речь', hint: 'Третий фол за малым столом', group: 'day', min: 5, max: 300, step: 5 },
+  { key: 'mafiaMeet', label: 'Договорка мафии', hint: 'Ночь 0. 0 — без таймера', group: 'night', min: 0, max: 300, step: 5 },
+  { key: 'donMeet', label: 'Знакомство дона', hint: 'Ночь 0. 0 — без таймера', group: 'night', min: 0, max: 120, step: 5 },
+  { key: 'sheriffMeet', label: 'Шериф смотрит на город', hint: 'Ночь 0. 0 — без таймера', group: 'night', min: 0, max: 120, step: 5 },
+  { key: 'nightCheck', label: 'Проверки дона и шерифа', hint: '0 — без таймера', group: 'night', min: 0, max: 120, step: 5 },
+  { key: 'warningAt', label: 'Сигнал до конца речи', hint: 'За сколько секунд. 0 — без сигнала', group: 'signal', min: 0, max: 60, step: 5 },
+];
+
+/** Ошибки в таймингах. Пустой список — всё в порядке. */
+export function validateTimings(t: Timings): string[] {
+  const errors: string[] = [];
+  for (const f of TIMING_FIELDS) {
+    const v = t[f.key];
+    if (!Number.isInteger(v) || v < f.min || v > f.max) {
+      errors.push(`${f.label}: нужно целое число секунд от ${f.min} до ${f.max}.`);
+    }
+  }
+  return errors;
+}
