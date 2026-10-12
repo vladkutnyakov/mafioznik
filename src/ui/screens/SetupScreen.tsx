@@ -98,6 +98,19 @@ export function SetupScreen({ onBack, onStart }: Props) {
 
   const compositionValid = validateComposition(composition, players).length === 0;
 
+  // Незаполненные места склеиваем в одну строку, чтобы список ошибок не рос с каждым местом.
+  const shownErrors = useMemo(() => {
+    const empty: string[] = [];
+    const rest: string[] = [];
+    for (const e of errors) {
+      const m = /^Место №(\d+): не указан игрок\.$/.exec(e);
+      if (m) empty.push(m[1]!);
+      else rest.push(e);
+    }
+    if (empty.length) rest.push(empty.length === 1 ? `Не указан игрок на месте №${empty[0]}.` : `Не указаны игроки на местах ${empty.join(', ')}.`);
+    return rest;
+  }, [errors]);
+
   const counts = useMemo(() => {
     const c: Record<Role, number> = { civilian: 0, sheriff: 0, mafia: 0, don: 0 };
     rows.forEach((r) => (c[r.role] += 1));
@@ -141,8 +154,11 @@ export function SetupScreen({ onBack, onStart }: Props) {
 
       <div className="row wrap" style={{ margin: '16px 0' }}>
         <div className="counters">
-          {ROLE_ORDER.filter((r) => composition[r] > 0 || counts[r] > 0).map((r) => (
-            <span key={r} className={`counter ${counts[r] === composition[r] ? 'is-ok' : 'is-bad'}`}>
+          {ROLE_ORDER.map((r) => (
+            <span
+              key={r}
+              className={`counter ${composition[r] === 0 && counts[r] === 0 ? 'is-off' : counts[r] === composition[r] ? 'is-ok' : 'is-bad'}`}
+            >
               {ROLE_NAMES[r]}: {counts[r]}/{composition[r]}
             </span>
           ))}
@@ -204,7 +220,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
               }}
             />
             <div className="role-picker" role="radiogroup" aria-label={`Роль места ${i + 1}`}>
-              {ROLE_ORDER.filter((r) => composition[r] > 0 || row.role === r).map((r) => (
+              {ROLE_ORDER.map((r) => (
                 <button
                   key={r}
                   role="radio"
@@ -212,7 +228,8 @@ export function SetupScreen({ onBack, onStart }: Props) {
                   data-team={ROLE_TEAM[r]}
                   className={`role-opt ${row.role === r ? 'is-on' : ''}`}
                   onClick={() => update(i, { role: r })}
-                  title={ROLE_NAMES[r]}
+                  disabled={composition[r] === 0 && row.role !== r}
+                  title={composition[r] === 0 ? `${ROLE_NAMES[r]}: нет в составе` : ROLE_NAMES[r]}
                 >
                   {ROLE_SHORT[r]}
                 </button>
@@ -230,7 +247,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
         </button>
         {errors.length > 0 && (
           <ul className="errors">
-            {errors.map((e) => (
+            {shownErrors.map((e) => (
               <li key={e}>{e}</li>
             ))}
           </ul>
