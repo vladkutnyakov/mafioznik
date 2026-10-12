@@ -662,3 +662,195 @@ button.ctl:hover:not(:disabled):not(.is-on) {
     -webkit-box-orient: vertical;
   }
 }
+
+/* ---------- компактный экран новой игры ---------- */
+
+.screen.setup {
+  padding-top: 16px;
+  padding-bottom: 20px;
+}
+
+.setup .setup-head {
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.setup-title {
+  font-size: 24px;
+  margin-right: 8px;
+}
+
+.setup .setup-head .btn {
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+/* Поля состава и итог — в одну строку, если хватает ширины. */
+.composition {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 28px;
+  padding: 14px 18px;
+}
+
+.composition .composition-summary {
+  flex: 1 1 300px;
+  border-top: none;
+  padding-top: 0;
+  min-height: 44px;
+}
+
+.field-count {
+  margin-left: 6px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.field-count.is-ok {
+  color: var(--ok);
+}
+
+.field-count.is-bad {
+  color: var(--warn);
+}
+
+.field-count.is-off {
+  opacity: 0.5;
+}
+
+.setup .setup-grid {
+  margin-top: 12px;
+  gap: 8px 16px;
+}
+
+.setup .setup-row {
+  padding: 6px 8px;
+}
+
+.setup .seat-num {
+  width: 36px;
+  height: 36px;
+  font-size: 17px;
+}
+
+.setup .nick-input,
+.setup .role-opt {
+  height: 42px;
+}
+
+.setup .setup-foot {
+  margin-top: 12px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.setup-errors {
+  margin-top: 10px;
+}
+
+/* Тайминги одной строкой рядом с кнопкой «Начать игру», настройки — окном. */
+.timings-bar {
+  flex: 1;
+  min-width: 0;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+}
+
+.timings-bar .timings-summary {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Окна: шире, чтобы три группы таймингов встали в ряд; в крайнем случае окно прокручивается само. */
+.sheet {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+
+.timings-body-sheet {
+  max-height: none;
+  overflow: visible;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+}
+
+/* Низкие экраны (ноутбуки): строки рассадки и поля таймингов чуть ниже. */
+@media (max-height: 700px) {
+  .setup .setup-grid {
+    gap: 6px 16px;
+  }
+  .setup .setup-row {
+    padding: 4px 8px;
+  }
+  .setup .nick-input,
+  .setup .role-opt {
+    height: 38px;
+  }
+  .setup .seat-num {
+    width: 32px;
+    height: 32px;
+  }
+  .sheet {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .timings-group {
+    gap: 6px;
+    padding-top: 8px;
+  }
+  .timing-control .btn,
+  .timing-input {
+    min-height: 38px;
+    height: 38px;
+  }
+}
+
+/* Узкое окно: места рассадки в один столбец, поэтому строки компактнее. */
+@media (max-width: 860px) {
+  .setup .setup-grid {
+    gap: 6px;
+  }
+  .setup .setup-row {
+    padding: 4px 8px;
+  }
+  .setup .nick-input,
+  .setup .role-opt {
+    height: 38px;
+  }
+  .setup .seat-num {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Поля состава плотнее, чтобы итог помещался в ту же строку на iPad в альбомной ориентации. */
+.composition {
+  gap: 12px 20px;
+}
+
+.composition .composition-summary {
+  flex-basis: 260px;
+}
+
+/* Узкое окно: кнопки шапки компактнее, чтобы не переносились на вторую строку. */
+@media (max-width: 860px) {
+  .setup .setup-head .btn {
+    padding: 0 10px;
+    font-size: 14px;
+  }
+  .setup-title {
+    font-size: 20px;
+    margin-right: 0;
+  }
+}

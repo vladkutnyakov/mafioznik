@@ -6,10 +6,12 @@ interface Props {
   current: Timings;
   onApply: (timings: Timings) => void;
   onClose: () => void;
+  /** Пояснение под заголовком. По умолчанию — текст для изменения посреди игры. */
+  note?: string;
 }
 
 /** Изменение таймингов посреди игры. */
-export function TimingsSheet({ current, onApply, onClose }: Props) {
+export function TimingsSheet({ current, onApply, onClose, note }: Props) {
   const [value, setValue] = useState<Timings>({ ...current });
   const errors = validateTimings(value);
   const dirty = (Object.keys(current) as (keyof Timings)[]).some((k) => current[k] !== value[k]);
@@ -21,7 +23,8 @@ export function TimingsSheet({ current, onApply, onClose }: Props) {
           <div className="sheet-who">
             <div className="sheet-title">Тайминги</div>
             <div className="muted">
-              Новые значения действуют сразу. Если поменять длительность текущей фазы, её таймер начнётся заново.
+              {note ??
+                'Новые значения действуют сразу. Если поменять длительность текущей фазы, её таймер начнётся заново.'}
             </div>
           </div>
           <button className="btn btn-ghost" onClick={onClose}>

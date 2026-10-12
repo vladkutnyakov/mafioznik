@@ -16,7 +16,7 @@ import {
 } from '../../engine';
 import { KEYS, kvGet, kvSet } from '../../storage/db';
 import { CompositionEditor } from '../setup/CompositionEditor';
-import { TimingsEditor } from '../setup/TimingsEditor';
+import { TimingsBar } from '../setup/TimingsEditor';
 
 interface Props {
   onBack: () => void;
@@ -99,15 +99,22 @@ export function SetupScreen({ onBack, onStart }: Props) {
   const compositionValid = validateComposition(composition, players).length === 0;
 
   // Незаполненные места склеиваем в одну строку, чтобы список ошибок не рос с каждым местом.
+  // Однотипные ошибки склеиваем по одной строке, чтобы список не рос с каждым местом и ролью.
   const shownErrors = useMemo(() => {
     const empty: string[] = [];
+    const roles: string[] = [];
     const rest: string[] = [];
     for (const e of errors) {
-      const m = /^Место №(\d+): не указан игрок\.$/.exec(e);
-      if (m) empty.push(m[1]!);
+      const seat = /^Место №(\d+): не указан игрок\.$/.exec(e);
+      const role = /^Роль «(.+)»: нужно (\d+), сейчас (\d+)\.$/.exec(e);
+      if (seat) empty.push(seat[1]!);
+      else if (role) roles.push(`${role[1]!.toLowerCase()} ${role[3]}/${role[2]}`);
       else rest.push(e);
     }
-    if (empty.length) rest.push(empty.length === 1 ? `Не указан игрок на месте №${empty[0]}.` : `Не указаны игроки на местах ${empty.join(', ')}.`);
+    if (roles.length) rest.push(`Роли розданы не по составу: ${roles.join(', ')}.`);
+    if (empty.length) {
+      rest.push(empty.length === 1 ? `Не указан игрок на месте №${empty[0]}.` : `Не указаны игроки на местах ${empty.join(', ')}.`);
+    }
     return rest;
   }, [errors]);
 
@@ -135,38 +142,14 @@ export function SetupScreen({ onBack, onStart }: Props) {
   };
 
   return (
-    <div className="screen">
+    <div className="screen setup">
+      {/* Действия с рассадкой — в шапке: отдельная строка под них съедала высоту. */}
       <div className="setup-head">
         <button className="icon-btn" onClick={onBack} aria-label="Назад">
           ←
         </button>
-        <h1 style={{ fontSize: 26 }}>Новая игра</h1>
+        <h1 className="setup-title">Новая игра</h1>
         <div className="spacer" />
-        <span className="muted">Регламент: {FIIM_REGULATION.name}</span>
-      </div>
-
-      <CompositionEditor
-        players={players}
-        composition={composition}
-        onPlayers={changePlayers}
-        onComposition={setComposition}
-      />
-
-      <div className="row wrap" style={{ margin: '16px 0' }}>
-        <div className="counters">
-          {ROLE_ORDER.map((r) => (
-            <span
-              key={r}
-              className={`counter ${composition[r] === 0 && counts[r] === 0 ? 'is-off' : counts[r] === composition[r] ? 'is-ok' : 'is-bad'}`}
-            >
-              {ROLE_NAMES[r]}: {counts[r]}/{composition[r]}
-            </span>
-          ))}
-        </div>
-        <div className="spacer" />
-        <button className="btn" onClick={() => setRows((prev) => prev.map((r) => ({ ...r, role: 'civilian' })))}>
-          Сбросить роли
-        </button>
         <button
           className="btn"
           disabled={!compositionValid}
@@ -186,10 +169,22 @@ export function SetupScreen({ onBack, onStart }: Props) {
         >
           Перемешать места
         </button>
+        <button className="btn" onClick={() => setRows((prev) => prev.map((r) => ({ ...r, role: 'civilian' })))}>
+          Сбросить роли
+        </button>
         <button className="btn btn-ghost" onClick={() => setRows(emptyRows(players))}>
           Очистить
         </button>
       </div>
+
+      <CompositionEditor
+        players={players}
+        composition={composition}
+        assigned={counts}
+        filled={rows.filter((r) => r.nickname.trim()).length}
+        onPlayers={changePlayers}
+        onComposition={setComposition}
+      />
 
       <datalist id="known-nicknames">
         {known.map((n) => (
@@ -239,20 +234,19 @@ export function SetupScreen({ onBack, onStart }: Props) {
         ))}
       </div>
 
-      <TimingsEditor value={timings} onChange={setTimings} />
-
       <div className="setup-foot">
         <button className="btn btn-primary btn-lg" disabled={errors.length > 0 || starting} onClick={start}>
           Начать игру
         </button>
-        {errors.length > 0 && (
-          <ul className="errors">
-            {shownErrors.map((e) => (
-              <li key={e}>{e}</li>
-            ))}
-          </ul>
-        )}
+        <TimingsBar value={timings} onChange={setTimings} />
       </div>
+      {errors.length > 0 && (
+        <ul className="errors setup-errors">
+          {shownErrors.map((e) => (
+            <li key={e}>{e}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

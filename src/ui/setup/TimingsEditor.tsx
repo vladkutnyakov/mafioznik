@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FIIM_REGULATION, TIMING_FIELDS, type TimingField, type Timings } from '../../engine';
+import { TimingsSheet } from '../game/TimingsSheet';
 
 interface Props {
   value: Timings;
@@ -23,6 +24,7 @@ function TimingInput({ field, value, onChange }: { field: TimingField; value: nu
       <div className="timing-label">
         <span>{field.label}</span>
         {field.hint && <span className="timing-hint">{field.hint}</span>}
+        {!isDefault && !invalid && <span className="timing-default">в ФИИМ: {DEFAULTS[field.key]} с</span>}
       </div>
       <div className="timing-control">
         <button
@@ -54,7 +56,6 @@ function TimingInput({ field, value, onChange }: { field: TimingField; value: nu
           +
         </button>
       </div>
-      {!isDefault && !invalid && <span className="timing-default">в ФИИМ: {DEFAULTS[field.key]} с</span>}
     </div>
   );
 }
@@ -77,15 +78,18 @@ export function TimingFields({ value, onChange }: Props) {
 
 export const timingsChanged = (value: Timings) => TIMING_FIELDS.filter((f) => value[f.key] !== DEFAULTS[f.key]).length;
 
-/** Настройки таймингов на экране новой игры. Свёрнуты в одну строку, пока их не открыли. */
-export function TimingsEditor({ value, onChange }: Props) {
+/**
+ * Тайминги на экране новой игры: одна строка со сводкой, настройки открываются окном.
+ * Так экран не растёт вниз, когда тайминги меняют.
+ */
+export function TimingsBar({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const changed = timingsChanged(value);
   const s = (v: number) => (Number.isFinite(v) ? `${v} с` : '—');
 
   return (
-    <section className="card timings">
-      <button className="timings-head" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+    <>
+      <button className="timings-bar" onClick={() => setOpen(true)}>
         <span className="timings-title">
           <b>Тайминги</b>
           <span className={changed ? 'timings-badge is-changed' : 'timings-badge'}>
@@ -96,20 +100,19 @@ export function TimingsEditor({ value, onChange }: Props) {
           речь {s(value.speech)} · оправдание {s(value.tieSpeech)} · прощальная {s(value.farewell)} · договорка{' '}
           {s(value.mafiaMeet)}
         </span>
-        <span className="timings-toggle">{open ? 'Свернуть' : 'Изменить'}</span>
+        <span className="timings-toggle">Изменить</span>
       </button>
-
       {open && (
-        <div className="timings-body">
-          <TimingFields value={value} onChange={onChange} />
-          <div className="timings-actions">
-            <button className="btn" disabled={changed === 0} onClick={() => onChange({ ...DEFAULTS })}>
-              Вернуть как в ФИИМ
-            </button>
-            <span className="muted">Настройки запомнятся для следующих игр.</span>
-          </div>
-        </div>
+        <TimingsSheet
+          current={value}
+          note="Тайминги для этой игры. Они запомнятся для следующих игр."
+          onClose={() => setOpen(false)}
+          onApply={(t) => {
+            onChange(t);
+            setOpen(false);
+          }}
+        />
       )}
-    </section>
+    </>
   );
 }

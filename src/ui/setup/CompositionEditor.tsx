@@ -11,6 +11,10 @@ import {
 interface Props {
   players: number;
   composition: Composition;
+  /** Сколько ролей уже раздано в рассадке. */
+  assigned: Composition;
+  /** Сколько мест с указанным ником. */
+  filled: number;
   onPlayers: (n: number) => void;
   onComposition: (c: Composition) => void;
 }
@@ -28,8 +32,8 @@ const gen = (n: number, one: string, many: string) => `${n} ${n % 10 === 1 && n 
 const sameComposition = (a: Composition, b: Composition) =>
   a.civilian === b.civilian && a.sheriff === b.sheriff && a.mafia === b.mafia && a.don === b.don;
 
-/** Число игроков за столом и состав ролей. Все контролы одной высоты, подписи на одной линии. */
-export function CompositionEditor({ players, composition, onPlayers, onComposition }: Props) {
+/** Число игроков, состав ролей и сколько уже роздано — в одной строке подписей. */
+export function CompositionEditor({ players, composition, assigned, filled, onPlayers, onComposition }: Props) {
   const reds = compositionReds(composition);
   const blacks = compositionBlacks(composition);
   const total = reds + blacks;
@@ -48,7 +52,12 @@ export function CompositionEditor({ players, composition, onPlayers, onCompositi
     <section className="card composition">
       <div className="composition-fields">
         <div className="field">
-          <div className="field-label">Игроков</div>
+          <div className="field-label">
+            Игроков
+            <span className={`field-count ${filled === players ? 'is-ok' : ''}`} title="Сколько мест с ником">
+              ники {filled}/{players}
+            </span>
+          </div>
           <div className="ctl-group" role="radiogroup" aria-label="Игроков за столом">
             {counts.map((n) => (
               <button
@@ -64,48 +73,46 @@ export function CompositionEditor({ players, composition, onPlayers, onCompositi
           </div>
         </div>
 
-        {ROLES.map(({ role, label, max, team }) => (
-          <div key={role} className="field">
-            <div className="field-label">
-              <i className={`dot ${team === 'red' ? 'dot-red' : 'dot-black'}`} />
-              {label}
+        {ROLES.map(({ role, label, max, team }) => {
+          const need = composition[role];
+          const have = assigned[role];
+          const state = need === 0 && have === 0 ? 'is-off' : have === need ? 'is-ok' : 'is-bad';
+          return (
+            <div key={role} className="field">
+              <div className="field-label">
+                <i className={`dot ${team === 'red' ? 'dot-red' : 'dot-black'}`} />
+                {label}
+                <span className={`field-count ${state}`} title="Роздано в рассадке из нужных по составу">
+                  {have}/{need}
+                </span>
+              </div>
+              <div className="ctl-group">
+                <button
+                  className="ctl"
+                  disabled={need <= 0}
+                  onClick={() => onComposition({ ...composition, [role]: need - 1 })}
+                  aria-label={`${label}: меньше`}
+                >
+                  −
+                </button>
+                <span className="ctl ctl-value" aria-live="polite">
+                  {need}
+                </span>
+                <button
+                  className="ctl"
+                  disabled={need >= max}
+                  onClick={() => onComposition({ ...composition, [role]: need + 1 })}
+                  aria-label={`${label}: больше`}
+                >
+                  +
+                </button>
+              </div>
             </div>
-            <div className="ctl-group">
-              <button
-                className="ctl"
-                disabled={composition[role] <= 0}
-                onClick={() => onComposition({ ...composition, [role]: composition[role] - 1 })}
-                aria-label={`${label}: меньше`}
-              >
-                −
-              </button>
-              <span className="ctl ctl-value" aria-live="polite">
-                {composition[role]}
-              </span>
-              <button
-                className="ctl"
-                disabled={composition[role] >= max}
-                onClick={() => onComposition({ ...composition, [role]: composition[role] + 1 })}
-                aria-label={`${label}: больше`}
-              >
-                +
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="composition-summary">
-        <span className="composition-teams">
-          <span>
-            <i className="dot dot-red" />
-            красных {reds}
-          </span>
-          <span>
-            <i className="dot dot-black" />
-            чёрных {blacks}
-          </span>
-        </span>
         <span className={`composition-message ${valid ? '' : 'is-warn'}`} title={message}>
           {message}
         </span>
@@ -115,7 +122,7 @@ export function CompositionEditor({ players, composition, onPlayers, onCompositi
           tabIndex={isPreset ? -1 : 0}
           onClick={() => onComposition(preset)}
         >
-          Состав по умолчанию
+          По умолчанию
         </button>
       </div>
     </section>
