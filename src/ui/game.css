@@ -1341,3 +1341,65 @@
   padding: 0 12px;
   gap: 8px;
 }
+
+/* ---------- портрет: стол сеткой ---------- */
+
+/* В узком окне овал съедает полэкрана. Те же карточки встают сеткой в две строки
+   в порядке обхода стола, сводка дня — строкой над ними. */
+@media (max-width: 960px) {
+  .table-wrap {
+    min-height: 0;
+    padding: 10px 12px;
+  }
+  .table {
+    min-height: 0;
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr));
+    gap: 8px;
+  }
+  .table-oval {
+    position: static;
+    inset: auto;
+    grid-column: 1 / -1;
+    order: -1;
+    border-radius: var(--radius);
+    padding: 8px 12px;
+  }
+  .table-center {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 18px;
+    padding: 0;
+  }
+  .table-day {
+    font-size: 18px;
+  }
+  .table-candidates b {
+    font-size: 16px;
+  }
+  .seat {
+    position: static;
+    transform: none;
+    width: auto;
+    order: var(--order);
+  }
+}
+
+@media (max-width: 960px) {
+  /* Стол занимает только нужную высоту, остальное — панели, её кнопки у нижнего края. */
+  .table-wrap {
+    flex: none;
+  }
+  .game-body > .panel {
+    flex: 1 0 auto;
+  }
+}
+
+@media (max-width: 960px) {
+  /* Заголовок фазы дублирует шапку панели, а в узкой верхней строке сжимается до буквы. */
+  .topbar-title {
+    visibility: hidden;
+  }
+}

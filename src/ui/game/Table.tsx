@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { ROLE_NAMES, aliveByTeam, currentCandidates, type GameState, type SeatState } from '../../engine';
 
 interface Props {
@@ -17,6 +18,15 @@ function seatPosition(seat: number, count: number): { left: string; top: string 
     left: `${50 + 40 * Math.cos(angle)}%`,
     top: `${50 + 39 * Math.sin(angle)}%`,
   };
+}
+
+/**
+ * Порядок места в сетке для портретной ориентации: две строки, как обход стола по кругу.
+ * Сверху места 1…ceil(N/2) слева направо, снизу остальные в обратном порядке: №N стоит под №1.
+ */
+function gridOrder(seat: number, count: number): number {
+  const top = Math.ceil(count / 2);
+  return seat <= top ? seat : top + (count - seat + 1);
 }
 
 function activeSeat(state: GameState): number | null {
@@ -59,7 +69,7 @@ export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Pro
   const alive = aliveByTeam(state);
 
   return (
-    <div className="table">
+    <div className="table" style={{ '--cols': Math.ceil(state.seats.length / 2) } as CSSProperties}>
       <div className="table-oval">
         <div className="table-center">
           <div className="table-day">{centerLabel(state)}</div>
@@ -117,7 +127,7 @@ export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Pro
           <button
             key={seat.seat}
             className={classes}
-            style={seatPosition(seat.seat, state.seats.length)}
+            style={{ ...seatPosition(seat.seat, state.seats.length), '--order': gridOrder(seat.seat, state.seats.length) } as CSSProperties}
             disabled={Boolean(selectable) && !canSelect}
             onClick={() => onSeatTap(seat.seat)}
           >
