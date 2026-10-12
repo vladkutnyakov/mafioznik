@@ -43,8 +43,8 @@ export interface PhaseUi {
   noteTone?: 'warn' | 'info';
   picker?: PickerSpec;
   extra?: ReactNode;
-  /** Показать extra над выбором игрока (результат проверки должен быть на виду). */
-  extraFirst?: boolean;
+  /** Блок на месте фразы ведущего, той же высоты: результат проверки после выбора игрока. */
+  callout?: ReactNode;
   custom?: 'voting' | 'liftAll';
   primary?: ActionSpec;
   secondary?: ActionSpec;
@@ -204,10 +204,9 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
           onPick: pickOne,
           tableSelects: true,
         },
-        extra: result,
-        extraFirst: true,
+        callout: result ?? undefined,
         primary: {
-          label: 'Записать проверку',
+          label: 'Записать',
           disabled: target === undefined,
           onClick: () => target !== undefined && dispatch({ type: 'check', target }),
           kbd: 'Enter',
@@ -247,7 +246,7 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
           kbd: 'Enter',
         },
         secondary: {
-          label: 'Без лучшего хода',
+          label: 'Пропустить',
           onClick: () => {
             setSelected([]);
             advance();
@@ -270,26 +269,27 @@ function CandidatesLine({ state, dispatch }: { state: GameState; dispatch: (e: G
   const candidates = currentCandidates(state);
   return (
     <div className="candidates">
-      <div className="section-label">На голосовании</div>
-      {candidates.length === 0 ? (
-        <div className="muted">Пока никого</div>
-      ) : (
-        <div className="candidates-list">
+      <div className="section-label">
+        На голосовании{candidates.length === 0 ? ': пока никого' : `: ${candidates.length}`}
+      </div>
+      {candidates.length > 0 && (
+        <div className="cand-chips">
           {candidates.map((c, i) => {
             const by = state.nominations.find((n) => n.day === state.day && n.target === c)?.by;
             return (
-              <div key={c} className="candidate">
-                <span className="candidate-order">{i + 1}</span>
-                <span className="candidate-no">№{c}</span>
-                <span className="candidate-by">от №{by}</span>
+              <span key={c} className="cand-chip">
+                <span className="cand-order">{i + 1}</span>
+                <b>№{c}</b>
+                <span className="cand-by">от №{by}</span>
                 <button
-                  className="candidate-remove"
+                  className="cand-remove"
                   onClick={() => dispatch({ type: 'cancelNomination', target: c })}
                   aria-label={`Снять выставление №${c}`}
+                  title="Снять выставление"
                 >
-                  Снять
+                  ✕
                 </button>
-              </div>
+              </span>
             );
           })}
         </div>

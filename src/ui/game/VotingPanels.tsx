@@ -143,7 +143,9 @@ export function VotingPanel({ state, candidates, dispatch }: VotingProps) {
 
       {editable > 0 && (
         <div>
-          <div className="section-label">Сколько рук за №{candidates[active]}?</div>
+          <div className="section-label">
+            Сколько рук за №{candidates[active]}? Голосуют {alive}.
+          </div>
           <NumberPad
             upTo={alive}
             max={maxForActive}
@@ -156,16 +158,15 @@ export function VotingPanel({ state, candidates, dispatch }: VotingProps) {
         </div>
       )}
 
-      <div className={`vote-result ${complete ? 'is-ready' : ''}`}>
-        {complete
-          ? leaders.length === 1
-            ? `Уходит №${leaders[0]} · ${nick(state, leaders[0]!)}`
-            : `Попил: ${list(leaders)}`
-          : `Голосуют ${alive} игроков. Введите голоса по порядку.`}
-      </div>
-
+      {/* Итог голосования прямо в кнопке: отдельная строка под ним занимала место. */}
       <button className="btn btn-primary btn-lg btn-block" disabled={!complete || last < 0} onClick={confirm}>
-        <span>Подтвердить голосование</span>
+        <span className="btn-label">
+          {!complete
+            ? 'Введите голоса по порядку'
+            : leaders.length === 1
+              ? `Подтвердить: уходит №${leaders[0]}`
+              : `Попил: ${list(leaders)}`}
+        </span>
         <Kbd>Enter</Kbd>
       </button>
     </div>
@@ -212,7 +213,9 @@ export function LiftAllPanel({ state, candidates, dispatch }: LiftAllProps) {
   return (
     <div className="vote">
       <div>
-        <div className="section-label">Сколько рук за подъём всех?</div>
+        <div className="section-label">
+          Сколько рук за подъём всех? Нужно {Math.floor(alive / 2) + 1} из {alive}.
+        </div>
         <NumberPad
           upTo={alive}
           max={alive}
@@ -223,15 +226,14 @@ export function LiftAllPanel({ state, candidates, dispatch }: LiftAllProps) {
           }}
         />
       </div>
-      <div className={`vote-result ${value !== null ? 'is-ready' : ''}`}>
-        {value === null
-          ? `Нужно больше половины: ${Math.floor(alive / 2) + 1} из ${alive}.`
-          : lifted
-            ? `Уходят все: ${list(candidates)}`
-            : 'Все остаются за столом'}
-      </div>
       <button className="btn btn-primary btn-lg btn-block" disabled={value === null} onClick={confirm}>
-        <span>Подтвердить</span>
+        <span className="btn-label">
+          {value === null
+            ? 'Введите число голосов'
+            : lifted
+              ? `Подтвердить: уходят ${list(candidates)}`
+              : 'Подтвердить: все остаются'}
+        </span>
         <Kbd>Enter</Kbd>
       </button>
     </div>

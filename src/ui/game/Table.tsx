@@ -101,9 +101,10 @@ export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Pro
           candidateIdx >= 0 ? 'is-candidate' : '',
         ].join(' ');
 
-        const tags: { text: string; tone?: string }[] = [];
+        const tags: { text: string; tone?: string; title?: string }[] = [];
+        if (status) tags.push({ text: status, tone: 'muted' });
         if (candidateIdx >= 0) tags.push({ text: `кандидат ${candidateIdx + 1}`, tone: 'amber' });
-        nominated.forEach((t) => tags.push({ text: `выставил №${t}` }));
+        nominated.forEach((t) => tags.push({ text: `→ №${t}`, title: `Выставил №${t}` }));
         if (seat.skipNextSpeech) tags.push({ text: 'без речи', tone: 'amber' });
         if (!hideRoles) {
           sheriffChecks.forEach((n) =>
@@ -126,19 +127,19 @@ export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Pro
                 {seat.player.nickname}
               </span>
             </span>
-            {(!hideRoles || status) && (
-              <span className="seat-line">
-                {!hideRoles && (
-                  <span className={`seat-role ${isRed ? 'is-red' : 'is-black'}`}>
-                    <i className={`dot ${isRed ? 'dot-red' : 'dot-black'}`} />
-                    {ROLE_NAMES[seat.role]}
-                  </span>
-                )}
-                {status && <span className="seat-status">{status}</span>}
-              </span>
-            )}
+            {/* Роль и фолы в одной строке: карточка ниже и не наезжает на соседние. */}
             <span className="seat-line">
-              <span className={`seat-fouls ${seat.fouls >= 3 ? 'is-hot' : ''}`} aria-label={`Фолов: ${seat.fouls}`}>
+              {!hideRoles && (
+                <span className={`seat-role ${isRed ? 'is-red' : 'is-black'}`}>
+                  <i className={`dot ${isRed ? 'dot-red' : 'dot-black'}`} />
+                  {ROLE_NAMES[seat.role]}
+                </span>
+              )}
+              <span
+                className={`seat-fouls ${seat.fouls >= 3 ? 'is-hot' : ''}`}
+                aria-label={`Фолов: ${seat.fouls}`}
+                title={`Фолов: ${seat.fouls}`}
+              >
                 {[0, 1, 2, 3].map((i) => (
                   <i key={i} className={i < seat.fouls ? 'on' : ''} />
                 ))}
@@ -147,7 +148,7 @@ export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Pro
             {tags.length > 0 && (
               <span className="seat-tags">
                 {tags.map((t, i) => (
-                  <span key={i} className={`tag ${t.tone ? `tag-${t.tone}` : ''}`}>
+                  <span key={i} className={`tag ${t.tone ? `tag-${t.tone}` : ''}`} title={t.title}>
                     {t.text}
                   </span>
                 ))}

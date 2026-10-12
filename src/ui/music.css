@@ -167,10 +167,11 @@ label.btn.is-busy {
 
 /* ---------- мини-плеер в игре ---------- */
 
+/* Меню открывается вправо от кнопки: слева от неё в портрете мало места. */
 .music-menu {
   width: 320px;
-  right: 0;
-  left: auto;
+  left: 0;
+  right: auto;
   padding: 14px;
   gap: 12px;
 }

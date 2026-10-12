@@ -1136,3 +1136,208 @@
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- компактная панель: меньше скролла без потери информации ---------- */
+
+.panel-scroll {
+  padding: 16px 16px 8px;
+  gap: 12px;
+}
+
+/* Фраза ведущего и результат проверки занимают один и тот же блок одной высоты. */
+.callout {
+  min-height: 66px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.callout > .check-result {
+  flex: 1;
+  padding: 10px 16px;
+  align-items: center;
+}
+
+.say {
+  padding: 10px 12px;
+}
+
+.say .section-label {
+  margin-bottom: 2px;
+}
+
+.say-text {
+  font-size: 16px;
+}
+
+.timer {
+  gap: 8px;
+}
+
+.timer-digits {
+  font-size: 56px;
+}
+
+.timer-controls .btn {
+  min-height: 42px;
+}
+
+/* Две кнопки внизу — в одну строку: главная растягивается, вторая по содержимому. */
+.panel-footer {
+  flex-direction: row;
+  padding: 12px 16px max(14px, env(safe-area-inset-bottom));
+}
+
+.panel-footer .btn {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+.panel-footer .btn:not(.btn-primary) {
+  flex: none;
+}
+
+/* Кандидаты — компактные чипы вместо строк. */
+.cand-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cand-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 3px 3px 8px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--warn-soft);
+  font-size: 16px;
+}
+
+.cand-order {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--warn);
+  color: #1b1200;
+}
+
+.cand-by {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cand-remove {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  border: none;
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.vote {
+  gap: 12px;
+}
+
+.vote-row {
+  min-height: 48px;
+}
+
+.numpad-btn {
+  height: 44px;
+}
+
+
+/* Низкие экраны: iPad в Safari, ноутбуки. */
+@media (max-height: 780px) {
+  .step-heading {
+    font-size: 22px;
+  }
+  .step-sub {
+    height: 20px;
+    font-size: 16px;
+  }
+  .callout {
+    min-height: 58px;
+  }
+  .say-text {
+    font-size: 15px;
+  }
+  .timer-digits {
+    font-size: 46px;
+  }
+  .timer-controls .btn {
+    min-height: 40px;
+  }
+  .pick {
+    min-height: 44px;
+    font-size: 20px;
+  }
+  .numpad-btn {
+    height: 40px;
+  }
+  .vote-row {
+    min-height: 42px;
+  }
+  .panel-footer .btn-lg {
+    min-height: 52px;
+    font-size: 17px;
+  }
+  .check-result-value {
+    font-size: 26px;
+  }
+}
+
+/* ---------- компактная карточка места ---------- */
+
+.seat-line .seat-fouls {
+  margin-left: auto;
+}
+
+.seat-fouls i {
+  width: 10px;
+}
+
+.tag-muted {
+  background: transparent;
+  padding-left: 0;
+  color: var(--muted);
+}
+
+.vote .btn-primary {
+  white-space: nowrap;
+}
+
+@media (max-height: 780px) {
+  .seat {
+    padding: 7px 9px;
+    gap: 4px;
+  }
+  .seat-no {
+    width: 26px;
+    height: 26px;
+    font-size: 15px;
+  }
+  .seat-name {
+    font-size: 14px;
+  }
+  .table-hint {
+    font-size: 13px;
+  }
+}
+
+/* Две кнопки внизу делят строку поровну, с меньшими отступами: подписи не обрезаются. */
+.panel-footer .btn,
+.panel-footer .btn:not(.btn-primary) {
+  flex: 1 1 0;
+  padding: 0 12px;
+  gap: 8px;
+}

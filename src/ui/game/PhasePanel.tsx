@@ -48,11 +48,15 @@ export function PhasePanel({ state, ui, phaseKey, dispatch }: Props) {
           </div>
         </div>
 
-        {ui.say && (
-          <div className="say">
-            <div className="section-label">Ведущий говорит</div>
-            <div className="say-text">{ui.say}</div>
-          </div>
+        {ui.callout ? (
+          <div className="callout">{ui.callout}</div>
+        ) : (
+          ui.say && (
+            <div className="say callout">
+              <div className="section-label">Ведущий говорит</div>
+              <div className="say-text">{ui.say}</div>
+            </div>
+          )
         )}
 
         {ui.note && <div className={`note note-${ui.noteTone ?? 'info'}`}>{ui.note}</div>}
@@ -68,9 +72,8 @@ export function PhasePanel({ state, ui, phaseKey, dispatch }: Props) {
           <LiftAllPanel key={phaseKey} state={state} candidates={state.phase.candidates} dispatch={dispatch} />
         )}
 
-        {ui.extraFirst && ui.extra}
         {ui.picker && <SeatPicker state={state} spec={ui.picker} />}
-        {!ui.extraFirst && ui.extra}
+        {ui.extra}
       </div>
 
       {(ui.primary || ui.secondary) && (
