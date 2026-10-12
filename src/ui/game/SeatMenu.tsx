@@ -38,7 +38,9 @@ export function SeatMenu({ state, seat, hideRoles, dispatch, onClose }: Props) {
         <div className="sheet-head">
           <span className="sheet-no">{seat}</span>
           <div className="sheet-who">
-            <div className="sheet-title">{s.player.nickname}</div>
+            <div className="sheet-title" title={s.player.nickname}>
+              {s.player.nickname}
+            </div>
             <div className="muted">
               {!hideRoles && `${ROLE_NAMES[s.role]} · `}
               фолов: {s.fouls}

@@ -36,6 +36,8 @@ export interface ActionSpec {
 export interface PhaseUi {
   overline: string;
   heading: string;
+  /** Ник игрока под заголовком. Строка есть всегда, чтобы высота шапки не менялась. */
+  sub?: string;
   say?: string;
   note?: ReactNode;
   noteTone?: 'warn' | 'info';
@@ -72,7 +74,6 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
   const advance = () => dispatch({ type: 'advance' });
   const next = (label = 'Дальше'): ActionSpec => ({ label, onClick: advance, kbd: 'Enter' });
   const pickOne = (seat: number) => setSelected(selected[0] === seat ? [] : [seat]);
-  const who = (seat: number) => `№${seat} · ${nick(state, seat)}`;
 
   switch (p.kind) {
     case 'night0':
@@ -89,7 +90,8 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
       const mine = nominatedBy(state, speaker);
       return {
         overline: `День ${state.day} · речи`,
-        heading: `Говорит ${who(speaker)}`,
+        heading: `Говорит №${speaker}`,
+        sub: nick(state, speaker),
         note: p.shortened ? 'Сокращённая речь: у игрока три фола.' : undefined,
         noteTone: 'warn',
         picker: {
@@ -110,7 +112,8 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
     case 'tieSpeech':
       return {
         overline: `День ${state.day} · попил`,
-        heading: `Оправдание ${who(p.seat)}`,
+        heading: `Оправдание №${p.seat}`,
+        sub: nick(state, p.seat),
         say: d.prompt,
         primary: next(),
       };
@@ -118,7 +121,8 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
     case 'farewell':
       return {
         overline: p.reason === 'killed' ? `Утро · день ${state.day + 1}` : `День ${state.day}`,
-        heading: `Прощальная речь ${who(p.seat)}`,
+        heading: `Прощальная речь №${p.seat}`,
+        sub: nick(state, p.seat),
         say: d.prompt,
         primary: next(),
       };
@@ -134,7 +138,7 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
     case 'liftAllVote':
       return {
         overline: `День ${state.day} · повторный попил`,
-        heading: 'Голосование за подъём всех',
+        heading: 'Подъём всех',
         say: d.prompt,
         custom: 'liftAll',
       };
@@ -155,7 +159,7 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
             tableSelects: true,
           },
           primary: {
-            label: target === undefined ? 'Выберите игрока' : `Убит ${who(target)}`,
+            label: target === undefined ? 'Выберите игрока' : `Убит №${target}`,
             disabled: target === undefined,
             onClick: () => target !== undefined && dispatch({ type: 'shoot', target }),
             kbd: 'Enter',
@@ -215,7 +219,8 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
     case 'morning':
       return {
         overline: `Утро · день ${state.day + 1}`,
-        heading: p.killed === null ? 'Ночью никто не убит' : `Убит ${who(p.killed)}`,
+        heading: p.killed === null ? 'Ночью никто не убит' : `Убит №${p.killed}`,
+        sub: p.killed === null ? undefined : nick(state, p.killed),
         say: d.prompt,
         primary: next(),
       };
@@ -223,7 +228,8 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
     case 'bestMove':
       return {
         overline: 'Утро · лучший ход',
-        heading: `Лучший ход ${who(p.seat)}`,
+        heading: `Лучший ход №${p.seat}`,
+        sub: nick(state, p.seat),
         say: d.prompt,
         picker: {
           label: 'Кого назвал игрок? До трёх номеров.',

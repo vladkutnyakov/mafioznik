@@ -122,7 +122,9 @@ export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Pro
           >
             <span className="seat-head">
               <span className="seat-no">{seat.seat}</span>
-              <span className="seat-name">{seat.player.nickname}</span>
+              <span className="seat-name" title={seat.player.nickname}>
+                {seat.player.nickname}
+              </span>
             </span>
             {(!hideRoles || status) && (
               <span className="seat-line">

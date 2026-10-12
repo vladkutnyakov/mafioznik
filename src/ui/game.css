@@ -203,11 +203,36 @@
   color: var(--muted);
 }
 
+/* Заголовок и ник всегда в одну строку: длина ника не должна сдвигать таймер и кнопки. */
 .step-heading {
   margin-top: 4px;
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step-sub {
+  height: 24px;
+  margin-top: 2px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-footer .btn {
+  white-space: nowrap;
+}
+
+.btn-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .say {
@@ -1064,4 +1089,42 @@
 
 .shortcut-keys .kbd {
   opacity: 0.9;
+}
+
+/* ---------- длинные ники ---------- */
+
+/* Ник никогда не раздвигает карточку места, сетку выбора и таблицы: только многоточие. */
+.seat {
+  overflow: hidden;
+}
+
+.seat-head {
+  width: 100%;
+  overflow: hidden;
+}
+
+.seat-name {
+  flex: 1;
+}
+
+.picker-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.pick {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.score-table .nick {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheet-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

@@ -19,7 +19,9 @@ export function SeatPicker({ state, spec }: { state: GameState; spec: PickerSpec
               aria-pressed={on}
             >
               <span className="pick-no">{s.seat}</span>
-              <span className="pick-nick">{s.player.nickname}</span>
+              <span className="pick-nick" title={s.player.nickname}>
+                {s.player.nickname}
+              </span>
             </button>
           );
         })}

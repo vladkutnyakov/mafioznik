@@ -11,6 +11,9 @@ interface Props {
   dispatch: (event: GameEvent) => boolean;
 }
 
+/** Неразрывный пробел: держит высоту строки ника, когда ника нет. */
+const NBSP = String.fromCharCode(160);
+
 export function Kbd({ children }: { children: string }) {
   return <kbd className="kbd">{children}</kbd>;
 }
@@ -22,7 +25,7 @@ function ActionButton({ action, primary }: { action: ActionSpec; primary: boolea
       disabled={action.disabled}
       onClick={action.onClick}
     >
-      <span>{action.label}</span>
+      <span className="btn-label">{action.label}</span>
       {action.kbd && <Kbd>{action.kbd}</Kbd>}
     </button>
   );
@@ -37,7 +40,12 @@ export function PhasePanel({ state, ui, phaseKey, dispatch }: Props) {
       <div className="panel-scroll">
         <div className="step">
           <div className="step-over">{ui.overline}</div>
-          <h2 className="step-heading">{ui.heading}</h2>
+          <h2 className="step-heading" title={ui.heading}>
+            {ui.heading}
+          </h2>
+          <div className="step-sub" title={ui.sub}>
+            {ui.sub ?? NBSP}
+          </div>
         </div>
 
         {ui.say && (

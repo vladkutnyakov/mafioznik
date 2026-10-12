@@ -61,7 +61,9 @@ export function ResultsView({ state, dispatch, onSave, onShowTable }: Props) {
           {scores.map((s) => (
             <tr key={s.seat} data-team={s.team} className={s.won ? 'is-won' : ''}>
               <td className="num">{s.seat}</td>
-              <td className="nick">{s.player.nickname}</td>
+              <td className="nick" title={s.player.nickname}>
+                {s.player.nickname}
+              </td>
               <td>
                 <span className={`seat-role ${s.team === 'red' ? 'is-red' : 'is-black'}`}>
                   <i className={`dot ${s.team === 'red' ? 'dot-red' : 'dot-black'}`} />
