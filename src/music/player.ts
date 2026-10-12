@@ -2,7 +2,7 @@
 // Громкость и затухание идут через Web Audio: на iPad громкость тега audio менять нельзя.
 
 import { useSyncExternalStore } from 'react';
-import { getAudioContext } from '../ui/audio/sound';
+import { getAudioContext, peekAudioContext } from '../ui/audio/sound';
 import {
   DEFAULT_MUSIC_SETTINGS,
   getTrackFile,
@@ -94,7 +94,7 @@ class MusicPlayer {
       this.releaseUrl();
       this.index = null;
     }
-    this.applyVolume(this.isPlaying() ? this.settings.volume : 0);
+    if (this.isPlaying()) this.applyVolume(this.settings.volume);
     this.emit();
   }
 
@@ -136,6 +136,10 @@ class MusicPlayer {
       this.gain = ctx.createGain();
       this.gain.gain.value = 0;
       source.connect(this.gain).connect(ctx.destination);
+      // Громкостью теперь управляет только узел Web Audio, сам элемент всегда на максимуме.
+      // Иначе нулевая громкость элемента глушит звук целиком, хотя трек играет.
+      this.audio.volume = 1;
+      this.audio.muted = false;
     } catch {
       this.gain = null;
     }
@@ -149,7 +153,7 @@ class MusicPlayer {
   }
 
   private applyVolume(value: number): void {
-    const ctx = getAudioContext();
+    const ctx = peekAudioContext();
     if (this.gain && ctx) {
       this.gain.gain.cancelScheduledValues(ctx.currentTime);
       this.gain.gain.setValueAtTime(value, ctx.currentTime);
@@ -159,7 +163,7 @@ class MusicPlayer {
   }
 
   private fadeTo(target: number, seconds: number): Promise<void> {
-    const ctx = getAudioContext();
+    const ctx = peekAudioContext();
     if (seconds <= 0) {
       this.applyVolume(target);
       return Promise.resolve();

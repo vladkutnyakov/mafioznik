@@ -6,6 +6,11 @@ export function getAudioContext(): AudioContext | null {
   return getCtx();
 }
 
+/** Уже созданный звуковой контекст, без создания нового: до касания экрана его создавать нельзя. */
+export function peekAudioContext(): AudioContext | null {
+  return ctx;
+}
+
 function getCtx(): AudioContext | null {
   if (ctx) return ctx;
   const Ctor =
