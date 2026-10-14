@@ -35,7 +35,11 @@ export function HomeScreen({ active, historyCount, onNew, onMusic, onResume, onD
 
         {active && (
           <div className="card resume-card">
-            <div className="muted">Незавершённая партия</div>
+            <div className="muted">
+              {active.setup.tournament
+                ? `${active.setup.tournament.name} · игра ${active.setup.tournament.game} из ${active.setup.tournament.games}`
+                : 'Незавершённая партия'}
+            </div>
             <div style={{ fontSize: 20, fontWeight: 700 }}>{activeTitle}</div>
             <div className="muted" style={{ fontSize: 14 }}>
               Начата {new Date(active.createdAt).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })}

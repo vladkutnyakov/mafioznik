@@ -9,15 +9,17 @@ import {
   validateComposition,
   validateSetup,
   withScoring,
+  type TournamentInfo,
   type Composition,
   type GameSetup,
   type ScoringSystem,
   type Timings,
 } from '../../engine';
+import { makeId, type GameSession } from '../../session/session';
 import { KEYS, kvGet, kvSet } from '../../storage/db';
 import { CompositionEditor } from '../setup/CompositionEditor';
-import { ScoringPicker } from '../setup/ScoringPicker';
 import { TimingsBar } from '../setup/TimingsEditor';
+import { ModeStep, TournamentStep, type GameMode, type TournamentDraft } from '../setup/TournamentStep';
 
 interface Props {
   onBack: () => void;
@@ -28,6 +30,20 @@ interface Props {
 interface Row {
   nickname: string;
 }
+
+/** Шаги новой игры: режим, для турнира — его настройки, затем рассадка. */
+type Step = 'mode' | 'tournament' | 'seats';
+
+/** Новый турнир: ведущий, число игр и система баллов — как в прошлом. */
+const newTournament = (prev?: Partial<TournamentDraft>): TournamentDraft => ({
+  id: makeId(),
+  name: '',
+  host: prev?.host ?? '',
+  games: prev?.games ?? 10,
+  scoring: prev?.scoring ?? 'fiim',
+});
+
+const playedIn = (history: GameSession[], id: string) => history.filter((g) => g.setup.tournament?.id === id).length;
 
 const emptyRows = (n: number): Row[] => Array.from({ length: n }, () => ({ nickname: '' }));
 
@@ -46,8 +62,14 @@ export function SetupScreen({ onBack, onStart }: Props) {
   const [known, setKnown] = useState<string[]>([]);
   const [starting, setStarting] = useState(false);
   const [timings, setTimings] = useState<Timings>({ ...FIIM_REGULATION.timings });
-  const [scoring, setScoring] = useState<ScoringSystem>('fiim');
+  const [step, setStep] = useState<Step>('mode');
+  const [mode, setMode] = useState<GameMode>('casual');
+  const [tournament, setTournament] = useState<TournamentDraft>(() => newTournament());
+  const [history, setHistory] = useState<GameSession[]>([]);
   const players = rows.length;
+  const scoring: ScoringSystem = mode === 'tournament' ? tournament.scoring : 'none';
+  /** Сколько игр турнира уже сохранено: следующая получает номер на единицу больше. */
+  const played = useMemo(() => playedIn(history, tournament.id), [history, tournament.id]);
 
   // Подставляем стол прошлой игры: за вечер обычно играют одни и те же люди и тем же составом.
   useEffect(() => {
@@ -57,7 +79,9 @@ export function SetupScreen({ onBack, onStart }: Props) {
       kvGet<Composition>(KEYS.lastComposition),
       kvGet<Partial<Timings>>(KEYS.lastTimings),
       kvGet<ScoringSystem>(KEYS.lastScoring),
-    ]).then(([lineup, names, savedComposition, savedTimings, savedScoring]) => {
+      kvGet<TournamentDraft>(KEYS.lastTournament),
+      kvGet<GameSession[]>(KEYS.history),
+    ]).then(([lineup, names, savedComposition, savedTimings, savedScoring, savedTournament, games = []]) => {
       if (lineup && lineup.length >= MIN_SEATS && lineup.length <= MAX_SEATS) {
         setRows(lineup.map((nickname) => ({ nickname })));
         const fits = savedComposition && validateComposition(savedComposition, lineup.length).length === 0;
@@ -65,7 +89,15 @@ export function SetupScreen({ onBack, onStart }: Props) {
       }
       setKnown(names ?? []);
       if (savedTimings) setTimings({ ...FIIM_REGULATION.timings, ...savedTimings });
-      if (SCORING_SYSTEMS.some((x) => x.id === savedScoring)) setScoring(savedScoring!);
+      setHistory(games);
+      // Прошлый турнир продолжаем, пока в нём остались игры; иначе — новый с тем же ведущим.
+      const scoringOk = (x?: ScoringSystem) => x !== 'none' && SCORING_SYSTEMS.some((s) => s.id === x);
+      if (savedTournament && scoringOk(savedTournament.scoring)) {
+        const unfinished = playedIn(games, savedTournament.id) < savedTournament.games;
+        setTournament(unfinished ? savedTournament : newTournament(savedTournament));
+      } else if (scoringOk(savedScoring)) {
+        setTournament(newTournament({ scoring: savedScoring }));
+      }
     });
   }, []);
 
@@ -76,13 +108,28 @@ export function SetupScreen({ onBack, onStart }: Props) {
     setComposition(compositionFor(n));
   };
 
+  const tournamentInfo: TournamentInfo | undefined = useMemo(
+    () =>
+      mode === 'tournament'
+        ? {
+            id: tournament.id,
+            name: tournament.name.trim(),
+            host: tournament.host.trim(),
+            games: tournament.games,
+            game: played + 1,
+          }
+        : undefined,
+    [mode, tournament, played],
+  );
+
   const setup: GameSetup = useMemo(
     () => ({
       regulation: withScoring({ ...FIIM_REGULATION, timings }, scoring),
       composition,
       seats: rows.map((r) => ({ player: { nickname: r.nickname.trim() } })),
+      ...(tournamentInfo && { tournament: tournamentInfo }),
     }),
-    [rows, timings, composition, scoring],
+    [rows, timings, composition, scoring, tournamentInfo],
   );
 
   const errors = useMemo(() => {
@@ -114,25 +161,84 @@ export function SetupScreen({ onBack, onStart }: Props) {
     if (errors.length || starting) return;
     setStarting(true);
     const nicknames = rows.map((r) => r.nickname.trim());
-    const merged = Array.from(new Set([...nicknames, ...known])).slice(0, 500);
+    const host = tournamentInfo?.host;
+    const merged = Array.from(new Set([...nicknames, ...(host ? [host] : []), ...known])).slice(0, 500);
     await Promise.all([
       kvSet(KEYS.lastLineup, nicknames),
       kvSet(KEYS.knownNicknames, merged),
       kvSet(KEYS.lastTimings, timings),
       kvSet(KEYS.lastComposition, composition),
-      kvSet(KEYS.lastScoring, scoring),
+      ...(tournamentInfo
+        ? [
+            kvSet(KEYS.lastScoring, scoring),
+            kvSet(KEYS.lastTournament, { ...tournament, name: tournamentInfo.name, host: tournamentInfo.host }),
+          ]
+        : []),
     ]);
     await onStart(setup);
   };
+
+  const datalist = (
+    <datalist id="known-nicknames">
+      {known.map((n) => (
+        <option key={n} value={n} />
+      ))}
+    </datalist>
+  );
+
+  if (step !== 'seats') {
+    return (
+      <div className="screen setup">
+        <div className="setup-step">
+          <div className="setup-head">
+            <button className="icon-btn" onClick={step === 'mode' ? onBack : () => setStep('mode')} aria-label="Назад">
+              ←
+            </button>
+            <h1 className="setup-title">{step === 'mode' ? 'Новая игра' : 'Турнир'}</h1>
+          </div>
+          {datalist}
+          {step === 'mode' ? (
+            <ModeStep
+              onPick={(m) => {
+                setMode(m);
+                setStep(m === 'tournament' ? 'tournament' : 'seats');
+              }}
+            />
+          ) : (
+            <TournamentStep
+              value={tournament}
+              played={played}
+              onChange={setTournament}
+              onReset={() => setTournament(newTournament(tournament))}
+              onNext={() => setStep('seats')}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const subtitle = tournamentInfo
+    ? `${tournamentInfo.name} · игра ${tournamentInfo.game} из ${tournamentInfo.games} · ведущий ${tournamentInfo.host}`
+    : 'Обычная игра · без счёта';
 
   return (
     <div className="screen setup">
       {/* Действия с рассадкой — в шапке: отдельная строка под них съедала высоту. */}
       <div className="setup-head">
-        <button className="icon-btn" onClick={onBack} aria-label="Назад">
+        <button
+          className="icon-btn"
+          onClick={() => setStep(mode === 'tournament' ? 'tournament' : 'mode')}
+          aria-label="Назад"
+        >
           ←
         </button>
-        <h1 className="setup-title">Новая игра</h1>
+        <div className="setup-titles">
+          <h1 className="setup-title">Рассадка</h1>
+          <div className="setup-subtitle" title={subtitle}>
+            {subtitle}
+          </div>
+        </div>
         <div className="spacer" />
         <button
           className="btn"
@@ -156,11 +262,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
         onComposition={setComposition}
       />
 
-      <datalist id="known-nicknames">
-        {known.map((n) => (
-          <option key={n} value={n} />
-        ))}
-      </datalist>
+      {datalist}
 
       <div className="setup-grid">
         {rows.map((row, i) => (
@@ -192,7 +294,6 @@ export function SetupScreen({ onBack, onStart }: Props) {
         <button className="btn btn-primary btn-lg" disabled={errors.length > 0 || starting} onClick={start}>
           Начать игру
         </button>
-        <ScoringPicker value={scoring} onChange={setScoring} />
         <TimingsBar value={timings} onChange={setTimings} />
       </div>
       {errors.length > 0 && (

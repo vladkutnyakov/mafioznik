@@ -117,8 +117,22 @@ export interface SeatSetup {
   role?: Role;
 }
 
+/** Турнир: серия игр с подсчётом баллов. Обычная игра идёт без турнира и без баллов. */
+export interface TournamentInfo {
+  id: string;
+  name: string;
+  /** Ник ведущего. */
+  host: string;
+  /** Сколько игр в турнире. */
+  games: number;
+  /** Номер этой игры в турнире, начиная с 1. */
+  game: number;
+}
+
 export interface GameSetup {
   regulation: Regulation;
+  /** Нет у обычных игр и старых партий. */
+  tournament?: TournamentInfo;
   /** Места по порядку: индекс 0 = место №1. */
   seats: SeatSetup[];
   /** Состав ролей. Если не указан (старые партии), это стандарт на 10 игроков. */
