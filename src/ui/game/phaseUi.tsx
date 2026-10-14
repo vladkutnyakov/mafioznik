@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
 import {
+  ALL_ALIVE_NOTE,
   NIGHT0_MARKS,
   ROLE_NAMES,
   TEAM_NAMES,
   actsTonight,
+  allAliveVote,
+  bestMoveSize,
   currentCandidates,
   describePhase,
   nightCheckerActive,
@@ -85,6 +88,16 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
     case 'speech': {
       const speaker = p.seat;
       const mine = nominatedBy(state, speaker);
+      if (allAliveVote(state)) {
+        return {
+          overline: `День ${state.day} · речи`,
+          heading: `Говорит №${speaker}`,
+          sub: nick(state, speaker),
+          note: p.shortened ? `Сокращённая речь: у игрока три фола. ${ALL_ALIVE_NOTE}` : ALL_ALIVE_NOTE,
+          noteTone: p.shortened ? 'warn' : 'info',
+          primary: next(hasNextSpeaker(state) ? 'Следующий игрок' : 'К голосованию'),
+        };
+      }
       return {
         overline: `День ${state.day} · речи`,
         heading: `Говорит №${speaker}`,
@@ -221,24 +234,26 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
         primary: next(),
       };
 
-    case 'bestMove':
+    case 'bestMove': {
+      const size = bestMoveSize(state);
+      const exact = state.regulation.bestMove.exact === true;
       return {
         overline: 'Утро · лучший ход',
         heading: `Лучший ход №${p.seat}`,
         sub: nick(state, p.seat),
         say: d.prompt,
         picker: {
-          label: 'Кого назвал игрок? До трёх номеров.',
-          max: 3,
-          can: (n) => n !== p.seat,
+          label: exact ? `Кого назвал игрок? Нужно номеров: ${size}.` : 'Кого назвал игрок? До трёх номеров.',
+          max: size,
+          can: (n) => n !== p.seat && (!exact || seatOf(state, n).status === 'alive'),
           selected,
           onPick: (n) =>
-            setSelected(selected.includes(n) ? selected.filter((x) => x !== n) : selected.length >= 3 ? selected : [...selected, n]),
+            setSelected(selected.includes(n) ? selected.filter((x) => x !== n) : selected.length >= size ? selected : [...selected, n]),
           tableSelects: true,
         },
         primary: {
-          label: `Записать: ${selected.length} из 3`,
-          disabled: selected.length === 0,
+          label: `Записать: ${selected.length} из ${size}`,
+          disabled: exact ? selected.length !== size : selected.length === 0,
           onClick: () => dispatch({ type: 'bestMove', targets: selected }),
           kbd: 'Enter',
         },
@@ -251,6 +266,7 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
           kbd: 'N',
         },
       };
+    }
 
     case 'finished':
       return {

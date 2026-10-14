@@ -937,6 +937,20 @@
   font-weight: 900;
 }
 
+.score-table .exit {
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Упрощённые баллы: балл забрали у игрока, но ещё никому не отдали. */
+.results-free {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--warn);
+}
+
 .score-table {
   width: 100%;
   border-collapse: separate;

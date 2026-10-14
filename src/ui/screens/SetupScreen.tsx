@@ -3,16 +3,20 @@ import {
   FIIM_REGULATION,
   MAX_SEATS,
   MIN_SEATS,
+  SCORING_SYSTEMS,
   SEAT_COUNT,
   compositionFor,
   validateComposition,
   validateSetup,
+  withScoring,
   type Composition,
   type GameSetup,
+  type ScoringSystem,
   type Timings,
 } from '../../engine';
 import { KEYS, kvGet, kvSet } from '../../storage/db';
 import { CompositionEditor } from '../setup/CompositionEditor';
+import { ScoringPicker } from '../setup/ScoringPicker';
 import { TimingsBar } from '../setup/TimingsEditor';
 
 interface Props {
@@ -42,6 +46,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
   const [known, setKnown] = useState<string[]>([]);
   const [starting, setStarting] = useState(false);
   const [timings, setTimings] = useState<Timings>({ ...FIIM_REGULATION.timings });
+  const [scoring, setScoring] = useState<ScoringSystem>('fiim');
   const players = rows.length;
 
   // Подставляем стол прошлой игры: за вечер обычно играют одни и те же люди и тем же составом.
@@ -51,7 +56,8 @@ export function SetupScreen({ onBack, onStart }: Props) {
       kvGet<string[]>(KEYS.knownNicknames),
       kvGet<Composition>(KEYS.lastComposition),
       kvGet<Partial<Timings>>(KEYS.lastTimings),
-    ]).then(([lineup, names, savedComposition, savedTimings]) => {
+      kvGet<ScoringSystem>(KEYS.lastScoring),
+    ]).then(([lineup, names, savedComposition, savedTimings, savedScoring]) => {
       if (lineup && lineup.length >= MIN_SEATS && lineup.length <= MAX_SEATS) {
         setRows(lineup.map((nickname) => ({ nickname })));
         const fits = savedComposition && validateComposition(savedComposition, lineup.length).length === 0;
@@ -59,6 +65,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
       }
       setKnown(names ?? []);
       if (savedTimings) setTimings({ ...FIIM_REGULATION.timings, ...savedTimings });
+      if (SCORING_SYSTEMS.some((x) => x.id === savedScoring)) setScoring(savedScoring!);
     });
   }, []);
 
@@ -71,11 +78,11 @@ export function SetupScreen({ onBack, onStart }: Props) {
 
   const setup: GameSetup = useMemo(
     () => ({
-      regulation: { ...FIIM_REGULATION, timings },
+      regulation: withScoring({ ...FIIM_REGULATION, timings }, scoring),
       composition,
       seats: rows.map((r) => ({ player: { nickname: r.nickname.trim() } })),
     }),
-    [rows, timings, composition],
+    [rows, timings, composition, scoring],
   );
 
   const errors = useMemo(() => {
@@ -113,6 +120,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
       kvSet(KEYS.knownNicknames, merged),
       kvSet(KEYS.lastTimings, timings),
       kvSet(KEYS.lastComposition, composition),
+      kvSet(KEYS.lastScoring, scoring),
     ]);
     await onStart(setup);
   };
@@ -184,6 +192,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
         <button className="btn btn-primary btn-lg" disabled={errors.length > 0 || starting} onClick={start}>
           Начать игру
         </button>
+        <ScoringPicker value={scoring} onChange={setScoring} />
         <TimingsBar value={timings} onChange={setTimings} />
       </div>
       {errors.length > 0 && (

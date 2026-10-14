@@ -1,8 +1,12 @@
 import { ROLE_NAMES, describePhase } from './labels';
 import { validateComposition, validateTimings } from './regulation';
+import { extraOf, extraRules, freeExtra } from './scoring';
 import {
   actsTonight,
   aliveByTeam,
+  aliveInSpeechOrder,
+  allAliveVote,
+  bestMoveSize,
   aliveCount,
   currentCandidates,
   currentNight,
@@ -40,6 +44,8 @@ export class GameRuleError extends Error {
 function fail(message: string): never {
   throw new GameRuleError(message);
 }
+
+export const ALL_ALIVE_NOTE = 'За столом трое: на голосование выставляются все.';
 
 // ---------------------------------------------------------------------------
 // Создание игры
@@ -287,6 +293,7 @@ function onSetRole(s: GameState, seatNumber: number, role: Role): void {
 function onNominate(s: GameState, target: number): void {
   const p = s.phase;
   if (p.kind !== 'speech') phaseError(s);
+  if (allAliveVote(s)) fail(ALL_ALIVE_NOTE);
   checkSeatNumber(s, target);
   const reg = s.regulation.nominations;
   if (!isAlive(seatOf(s, target))) fail(`Игрок №${target} уже выбыл.`);
@@ -392,10 +399,15 @@ function onCheck(s: GameState, target: number): void {
 function onBestMove(s: GameState, targets: number[]): void {
   const p = s.phase;
   if (p.kind !== 'bestMove') phaseError(s);
-  if (targets.length > 3) fail('В лучшем ходе не больше трёх номеров.');
+  const size = bestMoveSize(s);
+  if (targets.length > size) fail(`В лучшем ходе не больше ${size} номеров.`);
   targets.forEach((t) => checkSeatNumber(s, t));
   if (new Set(targets).size !== targets.length) fail('Номера в лучшем ходе не должны повторяться.');
   if (targets.includes(p.seat)) fail('Нельзя назвать себя в лучшем ходе.');
+  if (s.regulation.bestMove.exact) {
+    if (targets.length !== size) fail(`В лучшем ходе нужно назвать ${size} номера.`);
+    if (targets.some((t) => !isAlive(seatOf(s, t)))) fail('В лучшем ходе называют только игроков за столом.');
+  }
   const blacks = targets.filter((t) => teamOf(seatOf(s, t)) === 'black').length;
   s.bestMove = { seat: p.seat, targets: [...targets], blacks };
   popNext(s);
@@ -432,10 +444,16 @@ function onPpk(s: GameState, seatNumber: number): void {
 
 function onSetExtraPoints(s: GameState, seatNumber: number, value: number): void {
   if (!s.result) fail('Доп. баллы выставляются после завершения игры.');
+  const rules = extraRules(s);
+  if (!rules) fail('В этой игре баллы не считаются.');
   checkSeatNumber(s, seatNumber);
-  const { extraMin, extraMax } = s.regulation.scoring;
-  if (!Number.isFinite(value) || value < extraMin || value > extraMax) {
-    fail(`Доп. баллы должны быть от ${extraMin} до ${extraMax}.`);
+  const { min, max } = rules;
+  if (!Number.isFinite(value) || value < min || value > max) {
+    fail(`Доп. баллы должны быть от ${min} до ${max}.`);
+  }
+  if (rules.total !== null) {
+    if (!Number.isInteger(value)) fail('Доп. баллы — целые числа.');
+    if (value - extraOf(s, seatNumber) > freeExtra(s)) fail('Свободных доп. баллов нет: сначала заберите балл у другого игрока.');
   }
   s.extraPoints[seatNumber] = value;
 }
@@ -520,11 +538,15 @@ function startDay(s: GameState): void {
 
 function endSpeeches(s: GameState): void {
   const reg = s.regulation.voting;
-  const candidates = currentCandidates(s);
   if (s.dayRemoval && reg.noVoteAfterDayRemoval) {
     s.queue.unshift({ kind: 'startNight' });
     return;
   }
+  if (allAliveVote(s)) {
+    s.queue.unshift({ kind: 'voting', round: 'main', candidates: aliveInSpeechOrder(s) });
+    return;
+  }
+  const candidates = currentCandidates(s);
   if (candidates.length === 0) {
     s.queue.unshift({ kind: 'startNight' });
     return;

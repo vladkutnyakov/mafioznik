@@ -25,6 +25,14 @@ export const MAX_SEATS = 10;
 /** Состав ролей: сколько игроков каждой роли за столом. */
 export type Composition = Record<Role, number>;
 
+/**
+ * Система подсчёта баллов.
+ * fiim — баллы ФИИМ: доп. баллы ведущего дробные, штрафы из регламента.
+ * simple — клубная: у каждого со старта один доп. балл, хороший игрок забирает его у плохого.
+ * none — баллы не считаются.
+ */
+export type ScoringSystem = 'fiim' | 'simple' | 'none';
+
 /** Регламент: все настраиваемые правила игры. */
 export interface Regulation {
   id: string;
@@ -54,6 +62,11 @@ export interface Regulation {
     singleCandidateAutoEliminate: boolean;
     /** Если днём удалён игрок, голосование в этот день не проводится. */
     noVoteAfterDayRemoval: boolean;
+    /**
+     * При стольких живых и меньше на голосование выставляются все живые, выставления в речах не нужны.
+     * Нет в старых партиях: там правило выключено.
+     */
+    allAliveVoteAt?: number;
   };
   fouls: {
     /** На каком фоле игрок пропускает ближайшую речь. */
@@ -67,10 +80,17 @@ export interface Regulation {
     enabled: boolean;
     /** ЛХ только если отстрел в Ночь 1 стал первым выбыванием в игре. */
     requireFirstDeath: boolean;
+    /**
+     * Называют ровно столько живых игроков, сколько чёрных в составе, но не больше трёх.
+     * Нет в старых партиях: там можно назвать до трёх любых номеров.
+     */
+    exact?: boolean;
     /** Баллы по числу угаданных чёрных: индекс = количество (0–3). */
     pointsByBlacks: [number, number, number, number];
   };
   scoring: {
+    /** Нет в старых партиях: там баллы ФИИМ. */
+    system?: ScoringSystem;
     win: number;
     loss: number;
     extraMin: number;

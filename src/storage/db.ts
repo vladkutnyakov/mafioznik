@@ -105,4 +105,5 @@ export const KEYS = {
   knownNicknames: 'knownNicknames',
   lastTimings: 'lastTimings',
   lastComposition: 'lastComposition',
+  lastScoring: 'lastScoring',
 } as const;

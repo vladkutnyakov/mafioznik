@@ -714,6 +714,45 @@ button.ctl:hover:not(:disabled):not(.is-on) {
   margin-top: 10px;
 }
 
+/* Выбор системы баллов между кнопкой «Начать игру» и таймингами. */
+.scoring-picker {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scoring-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.scoring-picker .ctl-group {
+  height: 56px;
+}
+
+.ctl.ctl-text {
+  width: auto;
+  padding: 0 14px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+/* Узкое окно: баллы и тайминги не помещаются в одну строку с кнопкой. */
+@media (max-width: 860px) {
+  .setup .setup-foot {
+    flex-wrap: wrap;
+  }
+  .scoring-label {
+    display: none;
+  }
+  .ctl.ctl-text {
+    padding: 0 10px;
+    font-size: 14px;
+  }
+}
+
 /* Тайминги одной строкой рядом с кнопкой «Начать игру», настройки — окном. */
 .timings-bar {
   flex: 1;

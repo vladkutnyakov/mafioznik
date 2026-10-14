@@ -1,9 +1,18 @@
-import { currentCandidates, isAlive, nominatedBy, seatOf, type GameState } from '../../engine';
+import {
+  ALL_ALIVE_NOTE,
+  allAliveVote,
+  currentCandidates,
+  isAlive,
+  nominatedBy,
+  seatOf,
+  type GameState,
+} from '../../engine';
 
 /** Почему нельзя выставить игрока сейчас. null — можно. */
 export function nominateBlocker(state: GameState, target: number): string | null {
   const p = state.phase;
   if (p.kind !== 'speech') return 'Выставлять можно только во время речи.';
+  if (allAliveVote(state)) return ALL_ALIVE_NOTE;
   if (!isAlive(seatOf(state, target))) return 'Игрок выбыл.';
   const reg = state.regulation.nominations;
   if (!reg.allowSelf && target === p.seat) return 'Нельзя выставить себя.';

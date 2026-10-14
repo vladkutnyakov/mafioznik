@@ -1,4 +1,4 @@
-import { MAX_SEATS, MIN_SEATS, ROLE_COUNTS, type Composition, type Regulation } from './types';
+import { MAX_SEATS, MIN_SEATS, ROLE_COUNTS, type Composition, type Regulation, type ScoringSystem } from './types';
 
 /**
  * Базовый регламент по правилам ФИИМ.
@@ -26,6 +26,7 @@ export const FIIM_REGULATION: Regulation = {
     firstDaySingleCandidateNoVote: true,
     singleCandidateAutoEliminate: true,
     noVoteAfterDayRemoval: true,
+    allAliveVoteAt: 3,
   },
   fouls: {
     skipSpeechAt: 3,
@@ -35,9 +36,11 @@ export const FIIM_REGULATION: Regulation = {
   bestMove: {
     enabled: true,
     requireFirstDeath: true,
+    exact: true,
     pointsByBlacks: [0, 0, 0.25, 0.5],
   },
   scoring: {
+    system: 'fiim',
     win: 1,
     loss: 0,
     extraMin: -1,
@@ -50,6 +53,41 @@ export const FIIM_REGULATION: Regulation = {
 };
 
 export type Timings = Regulation['timings'];
+
+// ---------- системы баллов ----------
+
+export const SCORING_SYSTEMS: { id: ScoringSystem; label: string; hint: string }[] = [
+  { id: 'fiim', label: 'ФИИМ', hint: 'Доп. баллы от −1 до +1, ЛХ +0,25 и +0,5, штрафы за удаление и ППК' },
+  { id: 'simple', label: 'Упрощённые', hint: 'У каждого 1 доп. балл, хороший игрок забирает его у плохого' },
+  { id: 'none', label: 'Без баллов', hint: 'Только победившая команда' },
+];
+
+export const scoringSystem = (reg: Regulation): ScoringSystem => reg.scoring.system ?? 'fiim';
+
+/** Регламент с выбранной системой баллов. Остальные правила не меняются. */
+export function withScoring(reg: Regulation, system: ScoringSystem): Regulation {
+  if (system === 'simple') {
+    return {
+      ...reg,
+      // За ЛХ — по баллу за каждого угаданного чёрного.
+      bestMove: { ...reg.bestMove, pointsByBlacks: [0, 1, 2, 3] },
+      // Предел доп. баллов зависит от числа игроков, его считает extraRules.
+      scoring: {
+        system,
+        win: 1,
+        loss: 0,
+        extraMin: 0,
+        extraMax: 3,
+        extraStep: 1,
+        removalPenalty: 1,
+        disqualificationPenalty: 1,
+        ppkPenalty: 1,
+      },
+    };
+  }
+  const fiim = FIIM_REGULATION;
+  return { ...reg, bestMove: { ...reg.bestMove, pointsByBlacks: fiim.bestMove.pointsByBlacks }, scoring: { ...fiim.scoring, system } };
+}
 
 /** Описание настроек таймингов: подпись, допустимые значения, шаг для кнопок. */
 export interface TimingField {

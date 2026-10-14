@@ -1,4 +1,4 @@
-import { gameHasRole, pendingResult } from './selectors';
+import { allAliveVote, bestMoveSize, gameHasRole, pendingResult } from './selectors';
 import type { FinishReason, GameState, Role, Team } from './types';
 
 export const ROLE_NAMES: Record<Role, string> = {
@@ -21,6 +21,8 @@ export const FINISH_REASON_NAMES: Record<FinishReason, string> = {
 };
 
 const list = (seats: number[]) => seats.map((n) => `№${n}`).join(', ');
+
+const BEST_MOVE_WHOM: Record<number, string> = { 1: 'игрока', 2: 'двух игроков', 3: 'трёх игроков' };
 
 export interface PhaseDescription {
   /** Короткий заголовок для шапки: «День 2 · Речь №5». */
@@ -62,7 +64,10 @@ function describeBase(s: GameState): PhaseDescription {
     case 'voting':
       return {
         title: `${day} · ${p.round === 'main' ? 'Голосование' : 'Переголосование'}`,
-        prompt: `На голосовании игроки ${list(p.candidates)}. Голосуем по порядку выставления.`,
+        prompt:
+          p.round === 'main' && allAliveVote(s)
+            ? `За столом трое, на голосовании все: ${list(p.candidates)}. Голосуем по порядку.`
+            : `На голосовании игроки ${list(p.candidates)}. Голосуем по порядку выставления.`,
       };
     case 'tieSpeech':
       return {
@@ -99,7 +104,7 @@ function describeBase(s: GameState): PhaseDescription {
     case 'bestMove':
       return {
         title: `Лучший ход №${p.seat}`,
-        prompt: `Игрок №${p.seat}, назовите трёх игроков, которых считаете мафией.`,
+        prompt: `Игрок №${p.seat}, назовите ${BEST_MOVE_WHOM[bestMoveSize(s)] ?? 'трёх игроков'}, которых считаете мафией.`,
       };
     case 'finished': {
       const r = s.result;

@@ -47,6 +47,23 @@ export function currentCandidates(s: GameState): number[] {
     .map((n) => n.target);
 }
 
+/** За столом мало игроков: на голосование выставляются все живые. */
+export function allAliveVote(s: GameState): boolean {
+  const at = s.regulation.voting.allAliveVoteAt ?? 0;
+  return at > 0 && aliveCount(s) <= at;
+}
+
+/** Живые по порядку речей текущего дня: с того, кто открывал день. */
+export function aliveInSpeechOrder(s: GameState): number[] {
+  return seatsFrom(s.dayOpener ?? 1, s.seats.length).filter((n) => isAlive(seatOf(s, n)));
+}
+
+/** Сколько номеров называют в лучшем ходе: по числу чёрных в составе, но не больше трёх. */
+export function bestMoveSize(s: GameState): number {
+  if (!s.regulation.bestMove.exact) return 3;
+  return Math.min(3, s.composition.mafia + s.composition.don);
+}
+
 /** Кого выставил игрок в текущий день. */
 export function nominatedBy(s: GameState, seat: number): number[] {
   return s.nominations.filter((n) => n.day === s.day && n.by === seat).map((n) => n.target);
