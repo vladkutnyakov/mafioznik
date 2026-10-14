@@ -100,9 +100,7 @@ export async function kvDel(key: string): Promise<void> {
 /** Ключи хранилища приложения. */
 export const KEYS = {
   activeSession: 'activeSession',
-  history: 'history',
   lastLineup: 'lastLineup',
-  knownNicknames: 'knownNicknames',
   lastTimings: 'lastTimings',
   lastComposition: 'lastComposition',
   lastScoring: 'lastScoring',

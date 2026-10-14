@@ -2,17 +2,27 @@ import { useMemo, useState } from 'react';
 import { describePhase } from '../../engine';
 import { useMusic } from '../../music/player';
 import { sessionState, type GameSession } from '../../session/session';
+import type { FolderState } from '../../storage/archive';
 
 interface Props {
   active: GameSession | null;
   historyCount: number;
+  folder: FolderState;
   onNew: () => void;
   onMusic: () => void;
+  onSettings: () => void;
   onResume: (session: GameSession) => void;
   onDiscard: () => void;
 }
 
-export function HomeScreen({ active, historyCount, onNew, onMusic, onResume, onDiscard }: Props) {
+const FOLDER_LABEL: Record<FolderState['kind'], (name: string) => string> = {
+  unsupported: () => 'только в браузере',
+  none: () => 'не выбрана',
+  locked: () => 'нужен доступ',
+  ready: (name) => name,
+};
+
+export function HomeScreen({ active, historyCount, folder, onNew, onMusic, onSettings, onResume, onDiscard }: Props) {
   const [armDiscard, setArmDiscard] = useState(false);
   const { trackCount } = useMusic();
 
@@ -70,6 +80,11 @@ export function HomeScreen({ active, historyCount, onNew, onMusic, onResume, onD
         <button className="btn btn-block home-link" onClick={onMusic}>
           <span>Музыка для ночи</span>
           <span className="muted">{trackCount ? `${trackCount} шт.` : 'не загружена'}</span>
+        </button>
+
+        <button className={`btn btn-block home-link ${folder.kind === 'locked' ? 'btn-warn' : ''}`} onClick={onSettings}>
+          <span>Папка с историей игр</span>
+          <span className={folder.kind === 'locked' ? '' : 'muted'}>{FOLDER_LABEL[folder.kind]('name' in folder ? folder.name : '')}</span>
         </button>
 
         <div className="muted" style={{ fontSize: 14, textAlign: 'center' }}>

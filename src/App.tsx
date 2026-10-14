@@ -2,36 +2,40 @@ import { useCallback, useEffect, useState } from 'react';
 import type { GameSetup } from './engine';
 import { newSession, type GameSession } from './session/session';
 import { KEYS, kvDel, kvGet, kvSet } from './storage/db';
+import { folderState, getArchive, saveFinishedGame, syncFolder, type FolderState } from './storage/archive';
 import { GameScreen } from './ui/screens/GameScreen';
 import { HomeScreen } from './ui/screens/HomeScreen';
 import { SetupScreen } from './ui/screens/SetupScreen';
 import { unlockAudio } from './ui/audio/sound';
 import { music } from './music/player';
 import { MusicScreen } from './ui/screens/MusicScreen';
+import { SettingsScreen } from './ui/screens/SettingsScreen';
 
 type Screen =
   | { name: 'loading' }
   | { name: 'home' }
   | { name: 'setup' }
   | { name: 'music' }
+  | { name: 'settings' }
   | { name: 'game'; session: GameSession };
 
 export function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'loading' });
   const [active, setActive] = useState<GameSession | null>(null);
   const [historyCount, setHistoryCount] = useState(0);
+  const [folder, setFolder] = useState<FolderState>({ kind: 'none' });
 
   const refresh = useCallback(async () => {
-    const [saved, history] = await Promise.all([
-      kvGet<GameSession>(KEYS.activeSession),
-      kvGet<GameSession[]>(KEYS.history),
-    ]);
+    const [saved, archive, state] = await Promise.all([kvGet<GameSession>(KEYS.activeSession), getArchive(), folderState()]);
     setActive(saved ?? null);
-    setHistoryCount(history?.length ?? 0);
+    setHistoryCount(archive.games.length);
+    setFolder(state);
   }, []);
 
   useEffect(() => {
     void refresh().then(() => setScreen({ name: 'home' }));
+    // Подтягиваем игры из папки, если доступ к ней браузер помнит.
+    void syncFolder().then((r) => r && refresh());
     void music.reload();
   }, [refresh]);
 
@@ -62,9 +66,7 @@ export function App() {
   };
 
   const saveGame = async (session: GameSession) => {
-    const history = (await kvGet<GameSession[]>(KEYS.history)) ?? [];
-    const finished = { ...session, redo: [], finishedAt: Date.now() };
-    await kvSet(KEYS.history, [...history.filter((g) => g.id !== session.id), finished]);
+    await saveFinishedGame({ ...session, finishedAt: Date.now() });
     await kvDel(KEYS.activeSession);
     await exitGame();
   };
@@ -82,14 +84,18 @@ export function App() {
         <HomeScreen
           active={active}
           historyCount={historyCount}
+          folder={folder}
           onNew={() => setScreen({ name: 'setup' })}
           onMusic={() => setScreen({ name: 'music' })}
+          onSettings={() => setScreen({ name: 'settings' })}
           onResume={(session) => setScreen({ name: 'game', session })}
           onDiscard={discardGame}
         />
       );
     case 'music':
       return <MusicScreen onBack={() => setScreen({ name: 'home' })} />;
+    case 'settings':
+      return <SettingsScreen onBack={() => void refresh().then(() => setScreen({ name: 'home' }))} />;
     case 'setup':
       return <SetupScreen onBack={() => setScreen({ name: 'home' })} onStart={startGame} />;
     case 'game':

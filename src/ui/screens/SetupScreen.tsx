@@ -15,7 +15,9 @@ import {
   type ScoringSystem,
   type Timings,
 } from '../../engine';
-import { makeId, type GameSession } from '../../session/session';
+import { makeId } from '../../session/session';
+import { getArchive } from '../../storage/archive';
+import { emptyArchive, gamesInTournament, knownNicknames, type Archive } from '../../storage/archive-model';
 import { KEYS, kvGet, kvSet } from '../../storage/db';
 import { CompositionEditor } from '../setup/CompositionEditor';
 import { TimingsBar } from '../setup/TimingsEditor';
@@ -43,8 +45,6 @@ const newTournament = (prev?: Partial<TournamentDraft>): TournamentDraft => ({
   scoring: prev?.scoring ?? 'fiim',
 });
 
-const playedIn = (history: GameSession[], id: string) => history.filter((g) => g.setup.tournament?.id === id).length;
-
 const emptyRows = (n: number): Row[] => Array.from({ length: n }, () => ({ nickname: '' }));
 
 function shuffle<T>(items: T[]): T[] {
@@ -65,35 +65,34 @@ export function SetupScreen({ onBack, onStart }: Props) {
   const [step, setStep] = useState<Step>('mode');
   const [mode, setMode] = useState<GameMode>('casual');
   const [tournament, setTournament] = useState<TournamentDraft>(() => newTournament());
-  const [history, setHistory] = useState<GameSession[]>([]);
+  const [archive, setArchive] = useState<Archive>(emptyArchive);
   const players = rows.length;
   const scoring: ScoringSystem = mode === 'tournament' ? tournament.scoring : 'none';
   /** Сколько игр турнира уже сохранено: следующая получает номер на единицу больше. */
-  const played = useMemo(() => playedIn(history, tournament.id), [history, tournament.id]);
+  const played = useMemo(() => gamesInTournament(archive, tournament.id), [archive, tournament.id]);
 
   // Подставляем стол прошлой игры: за вечер обычно играют одни и те же люди и тем же составом.
   useEffect(() => {
     void Promise.all([
       kvGet<string[]>(KEYS.lastLineup),
-      kvGet<string[]>(KEYS.knownNicknames),
       kvGet<Composition>(KEYS.lastComposition),
       kvGet<Partial<Timings>>(KEYS.lastTimings),
       kvGet<ScoringSystem>(KEYS.lastScoring),
       kvGet<TournamentDraft>(KEYS.lastTournament),
-      kvGet<GameSession[]>(KEYS.history),
-    ]).then(([lineup, names, savedComposition, savedTimings, savedScoring, savedTournament, games = []]) => {
+      getArchive(),
+    ]).then(([lineup, savedComposition, savedTimings, savedScoring, savedTournament, saved]) => {
       if (lineup && lineup.length >= MIN_SEATS && lineup.length <= MAX_SEATS) {
         setRows(lineup.map((nickname) => ({ nickname })));
         const fits = savedComposition && validateComposition(savedComposition, lineup.length).length === 0;
         setComposition(fits ? savedComposition : compositionFor(lineup.length));
       }
-      setKnown(names ?? []);
+      setKnown(knownNicknames(saved));
       if (savedTimings) setTimings({ ...FIIM_REGULATION.timings, ...savedTimings });
-      setHistory(games);
+      setArchive(saved);
       // Прошлый турнир продолжаем, пока в нём остались игры; иначе — новый с тем же ведущим.
       const scoringOk = (x?: ScoringSystem) => x !== 'none' && SCORING_SYSTEMS.some((s) => s.id === x);
       if (savedTournament && scoringOk(savedTournament.scoring)) {
-        const unfinished = playedIn(games, savedTournament.id) < savedTournament.games;
+        const unfinished = gamesInTournament(saved, savedTournament.id) < savedTournament.games;
         setTournament(unfinished ? savedTournament : newTournament(savedTournament));
       } else if (scoringOk(savedScoring)) {
         setTournament(newTournament({ scoring: savedScoring }));
@@ -161,11 +160,8 @@ export function SetupScreen({ onBack, onStart }: Props) {
     if (errors.length || starting) return;
     setStarting(true);
     const nicknames = rows.map((r) => r.nickname.trim());
-    const host = tournamentInfo?.host;
-    const merged = Array.from(new Set([...nicknames, ...(host ? [host] : []), ...known])).slice(0, 500);
     await Promise.all([
       kvSet(KEYS.lastLineup, nicknames),
-      kvSet(KEYS.knownNicknames, merged),
       kvSet(KEYS.lastTimings, timings),
       kvSet(KEYS.lastComposition, composition),
       ...(tournamentInfo
