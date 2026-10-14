@@ -28,6 +28,7 @@ export const FIIM_REGULATION: Regulation = {
     noVoteAfterDayRemoval: true,
     allAliveVoteAt: 3,
   },
+  drawAfterQuietNights: 3,
   fouls: {
     skipSpeechAt: 3,
     removeAt: 4,

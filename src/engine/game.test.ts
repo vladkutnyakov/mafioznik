@@ -203,6 +203,7 @@ describe('полная игра: победа мирных', () => {
     ]);
     expect(s.nights[0]).toEqual({
       night: 1,
+      alive: 9,
       kill: 4,
       donCheck: { target: 4, isSheriff: true },
       sheriffCheck: { target: 6, isBlack: true },
@@ -237,7 +238,7 @@ describe('полная игра: победа мирных', () => {
     expect(() => replay(setup(), [...upToShoot, ...adv(), check(1)])).toThrow('Шериф выбыл');
     s = replay(setup(), [...upToShoot, ...adv(2)]);
     expect(s.phase).toEqual({ kind: 'morning', killed: null });
-    expect(s.nights[1]).toEqual({ night: 2, kill: null });
+    expect(s.nights[1]).toEqual({ night: 2, alive: 7, kill: null });
   });
 
   it('считает баллы с доп. баллами', () => {
@@ -457,5 +458,48 @@ describe('журнал событий', () => {
     expect(r.failedAt).toBe(4);
     expect(r.error).toContain('уже выставил');
     expect(r.state.nominations).toHaveLength(1);
+  });
+});
+
+describe('ничья', () => {
+  /** День без выставлений и ночь с промахом: никто не выбывает. */
+  const quietRound: GameEvent[] = [...adv(10), shoot(null), ...adv(3)];
+  /** Три тихих дня и ночи, ведущий объявляет утро после Ночи 3. */
+  const threeQuiet = [...toDay1, ...quietRound, ...quietRound, ...adv(10), shoot(null), ...adv(2)];
+
+  it('после третьей ночи подряд без выбываний', () => {
+    let s = replay(setup(), threeQuiet.slice(0, -1));
+    expect(s.phase).toEqual({ kind: 'night', step: 'sheriffCheck' });
+    s = replay(setup(), threeQuiet);
+    expect(s.result).toBeNull();
+    expect(s.phase).toEqual({ kind: 'morning', killed: null });
+    expect(describePhase(s).prompt).toContain('Затем игра завершится: ничья.');
+    s = replay(setup(), [...threeQuiet, ...adv()]);
+    expect(s.result).toEqual({ winner: null, reason: 'quietNights' });
+    expect(describePhase(s).prompt).toContain('Ничья.');
+    expect(computeScores(s)!.every((x) => !x.won && x.base === 0)).toBe(true);
+  });
+
+  it('выбывание днём сбивает счёт ночей', () => {
+    const events = [
+      ...toDay1,
+      ...quietRound,
+      ...quietRound,
+      // День 3 открывает №3: он выставляет себя, единственный кандидат выбывает без голосования.
+      nominate(3),
+      ...adv(11), // речи и прощальная речь №3
+      shoot(null),
+      ...adv(3),
+    ];
+    const s = replay(setup(), events);
+    expect(s.result).toBeNull();
+    expect(s.day).toBe(4);
+    expect(s.phase).toEqual({ kind: 'speech', seat: 4, shortened: false });
+  });
+
+  it('в старых партиях правила нет', () => {
+    const s = replay(setup((r) => delete r.drawAfterQuietNights), [...threeQuiet, ...adv()]);
+    expect(s.result).toBeNull();
+    expect(s.day).toBe(4);
   });
 });

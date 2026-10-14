@@ -3,7 +3,7 @@ import {
   ALL_ALIVE_NOTE,
   NIGHT0_MARKS,
   ROLE_NAMES,
-  TEAM_NAMES,
+  pendingOutcome,
   actsTonight,
   allAliveVote,
   bestMoveSize,
@@ -68,7 +68,7 @@ export function buildPhaseUi({ state, dispatch, selected, setSelected, onShowRes
   const ui = build({ state, dispatch, selected, setSelected, onShowResults });
   const pending = pendingResult(state);
   if (pending && !ui.note) {
-    ui.note = `После этой речи игра завершится: победа — ${TEAM_NAMES[pending.winner]}.`;
+    ui.note = `После этой речи игра завершится: ${pendingOutcome(pending)}.`;
     ui.noteTone = 'info';
   }
   return ui;

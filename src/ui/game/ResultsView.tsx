@@ -3,7 +3,7 @@ import {
   ROLE_NAMES,
   ROLE_TEAM,
   SCORING_SYSTEMS,
-  TEAM_NAMES,
+  outcomeName,
   computeScores,
   extraRules,
   freeExtra,
@@ -54,9 +54,9 @@ export function ResultsView({ state, dispatch, onSave, onShowTable }: Props) {
 
   return (
     <div className="results">
-      <div className="results-head" data-team={result.winner}>
+      <div className="results-head" data-team={result.winner ?? undefined}>
         <div>
-          <div className="results-winner">Победа: {TEAM_NAMES[result.winner]}</div>
+          <div className="results-winner">{outcomeName(result)}</div>
           <div className="muted">
             {FINISH_REASON_NAMES[result.reason]} · баллы: {system.label.toLowerCase()}
           </div>

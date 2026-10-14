@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ROLE_NAMES, TEAM_NAMES, type Role } from '../../engine';
+import { ROLE_NAMES, outcomeName, type Role } from '../../engine';
 import { getArchive } from '../../storage/archive';
 import type { Archive } from '../../storage/archive-model';
 import { gameSummaries, playerKey, playerStats, winRate, type GameFilter, type GameSummary, type PlayerStats } from '../../storage/stats';
@@ -229,7 +229,7 @@ function GameRow({ summary, player, onOpen }: { summary: GameSummary; player: Pl
         </span>
       )}
       <span className="history-game-winner">
-        {state ? (winner ? `Победа: ${TEAM_NAMES[winner]}` : 'Без итога') : 'Не читается'}
+        {state ? (state.result ? outcomeName(state.result) : 'Без итога') : 'Не читается'}
       </span>
     </button>
   );

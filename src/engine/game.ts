@@ -566,7 +566,7 @@ function endSpeeches(s: GameState): void {
 
 function startNight(s: GameState): void {
   s.dayRemoval = false;
-  s.nights.push({ night: s.day, kill: null });
+  s.nights.push({ night: s.day, alive: aliveCount(s), kill: null });
   s.queue.unshift(
     { kind: 'night', step: 'shoot' },
     { kind: 'night', step: 'donCheck' },
@@ -577,7 +577,7 @@ function startNight(s: GameState): void {
 
 function endNight(s: GameState): void {
   const kill = currentNight(s)?.kill ?? null;
-  const result = winnerNow(s);
+  const result = winnerNow(s) ?? quietDraw(s);
   const items: QueueItem[] = [{ kind: 'morning', killed: kill }];
   if (kill !== null) {
     if (bestMoveEligible(s, kill)) items.push({ kind: 'bestMove', seat: kill });
@@ -586,6 +586,14 @@ function endNight(s: GameState): void {
   // Если отстрел решил исход, убитый всё равно получает прощальную речь, потом игра завершается.
   items.push(result ? { kind: 'finishGame', ...result } : { kind: 'startDay' });
   s.queue.unshift(...items);
+}
+
+/** Ничья: несколько ночей подряд, считая эту, число игроков за столом не менялось. */
+function quietDraw(s: GameState): GameResult | null {
+  const n = s.regulation.drawAfterQuietNights;
+  if (!n || s.nights.length < n) return null;
+  const first = s.nights[s.nights.length - n]!;
+  return first.alive === aliveCount(s) ? { winner: null, reason: 'quietNights' } : null;
 }
 
 function bestMoveEligible(s: GameState, kill: number): boolean {
@@ -640,7 +648,7 @@ function checkAndFinish(s: GameState): boolean {
   return true;
 }
 
-function finish(s: GameState, winner: Team, reason: FinishReason): void {
+function finish(s: GameState, winner: Team | null, reason: FinishReason): void {
   s.result = { winner, reason };
   s.phase = { kind: 'finished' };
   s.queue = [];

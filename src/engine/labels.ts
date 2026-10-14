@@ -1,5 +1,5 @@
 import { allAliveVote, bestMoveSize, gameHasRole, pendingResult } from './selectors';
-import type { FinishReason, GameState, Role, Team } from './types';
+import type { FinishReason, GameResult, GameState, Role, Team } from './types';
 
 export const ROLE_NAMES: Record<Role, string> = {
   civilian: 'Мирный',
@@ -16,9 +16,18 @@ export const TEAM_NAMES: Record<Team, string> = {
 export const FINISH_REASON_NAMES: Record<FinishReason, string> = {
   allBlacksOut: 'Все чёрные игроки покинули стол',
   blacksParity: 'Чёрных столько же, сколько красных',
+  quietNights: 'Три ночи подряд никто не покинул стол',
   ppk: 'Признание поражения команды (ППК)',
   manual: 'Решение ведущего',
 };
+
+/** «Победа: Мирные» или «Ничья». */
+export const outcomeName = (r: Pick<GameResult, 'winner'>): string =>
+  r.winner ? `Победа: ${TEAM_NAMES[r.winner]}` : 'Ничья';
+
+/** Конец фразы «игра завершится: …». */
+export const pendingOutcome = (r: Pick<GameResult, 'winner'>): string =>
+  r.winner ? `победа — ${TEAM_NAMES[r.winner]}` : 'ничья';
 
 const list = (seats: number[]) => seats.map((n) => `№${n}`).join(', ');
 
@@ -35,7 +44,7 @@ export function describePhase(s: GameState): PhaseDescription {
   const base = describeBase(s);
   const pending = pendingResult(s);
   if (!pending) return base;
-  return { ...base, prompt: `${base.prompt} Затем игра завершится: победа — ${TEAM_NAMES[pending.winner]}.` };
+  return { ...base, prompt: `${base.prompt} Затем игра завершится: ${pendingOutcome(pending)}.` };
 }
 
 function describeBase(s: GameState): PhaseDescription {
@@ -110,7 +119,7 @@ function describeBase(s: GameState): PhaseDescription {
       const r = s.result;
       return {
         title: 'Игра завершена',
-        prompt: r ? `Победа: ${TEAM_NAMES[r.winner]}. ${FINISH_REASON_NAMES[r.reason]}.` : 'Игра завершена.',
+        prompt: r ? `${outcomeName(r)}. ${FINISH_REASON_NAMES[r.reason]}.` : 'Игра завершена.',
       };
     }
   }

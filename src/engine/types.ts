@@ -68,6 +68,11 @@ export interface Regulation {
      */
     allAliveVoteAt?: number;
   };
+  /**
+   * Ничья, если столько ночей подряд число игроков за столом не менялось (никто не выбыл ни ночью, ни днём).
+   * Нет в старых партиях: там правило выключено.
+   */
+  drawAfterQuietNights?: number;
   fouls: {
     /** На каком фоле игрок пропускает ближайшую речь. */
     skipSpeechAt: number;
@@ -177,7 +182,7 @@ export type QueueItem =
   | { kind: 'startNight' }
   | { kind: 'endNight' }
   /** Исход решён, игра завершается после прощальных речей. */
-  | { kind: 'finishGame'; winner: Team; reason: FinishReason };
+  | { kind: 'finishGame'; winner: Team | null; reason: FinishReason };
 
 export type EliminationKind = 'killed' | 'voted' | 'removed';
 
@@ -210,6 +215,8 @@ export interface LiftAllRecord {
 
 export interface NightRecord {
   night: number;
+  /** Сколько игроков было за столом, когда наступила ночь. */
+  alive: number;
   kill: number | null;
   donCheck?: { target: number; isSheriff: boolean };
   sheriffCheck?: { target: number; isBlack: boolean };
@@ -235,10 +242,11 @@ export interface BestMoveRecord {
   blacks: number;
 }
 
-export type FinishReason = 'allBlacksOut' | 'blacksParity' | 'ppk' | 'manual';
+export type FinishReason = 'allBlacksOut' | 'blacksParity' | 'quietNights' | 'ppk' | 'manual';
 
 export interface GameResult {
-  winner: Team;
+  /** null — ничья. */
+  winner: Team | null;
   reason: FinishReason;
 }
 
