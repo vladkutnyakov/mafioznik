@@ -832,6 +832,46 @@ button.ctl:hover:not(:disabled):not(.is-on) {
   color: var(--muted);
 }
 
+/* Правила системы баллов: свёрнуты, раскрываются кнопкой «?». */
+.scoring-rules-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scoring-rules-toggle {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.scoring-rules-toggle.is-on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.scoring-rules-list {
+  margin: 8px 0 0;
+  padding: 12px 14px 12px 32px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 14px;
+  line-height: 1.45;
+  max-width: 640px;
+}
+
+.scoring-rules-list li + li {
+  margin-top: 6px;
+}
+
 .tournament-actions {
   display: flex;
   align-items: center;

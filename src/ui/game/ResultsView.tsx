@@ -14,6 +14,7 @@ import {
   type GameState,
   type Role,
 } from '../../engine';
+import { ScoringRules } from '../setup/ScoringPicker';
 
 interface Props {
   state: GameState;
@@ -60,6 +61,7 @@ export function ResultsView({ state, dispatch, onSave, onShowTable }: Props) {
           <div className="muted">
             {FINISH_REASON_NAMES[result.reason]} · баллы: {system.label.toLowerCase()}
           </div>
+          <ScoringRules system={system.id} />
           {free > 0 && <div className="results-free">Забрано и не отдано доп. баллов: {free}</div>}
         </div>
         <div className="spacer" />
