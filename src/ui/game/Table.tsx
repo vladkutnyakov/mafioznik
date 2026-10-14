@@ -67,13 +67,15 @@ export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Pro
   const candidates = showsNominations(state) ? currentCandidates(state) : [];
   const speaker = activeSeat(state);
   const alive = aliveByTeam(state);
+  // В Ночь 0 роли ещё отмечаются: «мирный» там значит «не отмечен».
+  const marking = state.phase.kind === 'night0';
 
   return (
     <div className="table" style={{ '--cols': Math.ceil(state.seats.length / 2) } as CSSProperties}>
       <div className="table-oval">
         <div className="table-center">
           <div className="table-day">{centerLabel(state)}</div>
-          {!hideRoles && (
+          {!hideRoles && !marking && (
             <div className="table-alive">
               <span>
                 <i className="dot dot-red" /> красных {alive.red}
@@ -139,7 +141,7 @@ export function Table({ state, hideRoles, selected, selectable, onSeatTap }: Pro
             </span>
             {/* Роль и фолы в одной строке: карточка ниже и не наезжает на соседние. */}
             <span className="seat-line">
-              {!hideRoles && (
+              {!hideRoles && !(marking && seat.role === 'civilian') && (
                 <span className={`seat-role ${isRed ? 'is-red' : 'is-black'}`}>
                   <i className={`dot ${isRed ? 'dot-red' : 'dot-black'}`} />
                   {ROLE_NAMES[seat.role]}

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import {
+  NIGHT0_MARKS,
+  ROLE_NAMES,
   TEAM_NAMES,
   actsTonight,
   currentCandidates,
@@ -11,6 +13,7 @@ import {
   teamOf,
   type GameEvent,
   type GameState,
+  type Night0Step,
 } from '../../engine';
 import { hasNextSpeaker, nick, nominateBlocker } from './rules';
 
@@ -77,13 +80,7 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
 
   switch (p.kind) {
     case 'night0':
-      return {
-        overline: 'Ночь 0 · знакомство',
-        heading:
-          p.step === 'mafiaMeet' ? 'Договорка мафии' : p.step === 'donMeet' ? 'Дон знакомится с ведущим' : 'Шериф смотрит на город',
-        say: d.prompt,
-        primary: next(),
-      };
+      return night0Ui(state, p.step, d.prompt, dispatch, next);
 
     case 'speech': {
       const speaker = p.seat;
@@ -263,6 +260,69 @@ function build({ state, dispatch, selected, setSelected, onShowResults }: Args):
         primary: { label: 'К итогам', onClick: onShowResults, kbd: 'Enter' },
       };
   }
+}
+
+const NIGHT0_HEADINGS: Record<Night0Step, string> = {
+  deal: 'Раздача карт',
+  mafiaMeet: 'Договорка мафии',
+  donMeet: 'Дон знакомится с ведущим',
+  sheriffMeet: 'Шериф смотрит на город',
+};
+
+/** Ночь 0: ведущий раздаёт карты, потом отмечает на столе тех, кто проснулся. */
+function night0Ui(
+  state: GameState,
+  step: Night0Step,
+  say: string,
+  dispatch: (event: GameEvent) => boolean,
+  next: (label?: string) => ActionSpec,
+): PhaseUi {
+  const base = { overline: 'Ночь 0 · знакомство', heading: NIGHT0_HEADINGS[step], say };
+  const marks = NIGHT0_MARKS[step];
+  if (!marks) {
+    return {
+      ...base,
+      note: 'Роли пока никто не знает. Ведущий отметит их, когда игроки проснутся.',
+      primary: next('Карты розданы'),
+    };
+  }
+  const [role, unmark] = marks;
+  const c = state.composition;
+  const marked = state.seats.filter((x) => (step === 'mafiaMeet' ? teamOf(x) === 'black' : x.role === role)).map((x) => x.seat);
+  const need = step === 'mafiaMeet' ? c.mafia + c.don : c[role];
+  const done = marked.length === need;
+  const can = (n: number) => {
+    const seat = seatOf(state, n);
+    if (step === 'mafiaMeet') return marked.length < need;
+    if (step === 'donMeet') return teamOf(seat) === 'black';
+    return teamOf(seat) === 'red';
+  };
+  const label =
+    step === 'mafiaMeet'
+      ? `Кто проснулся? ${c.don ? 'Отметьте всю мафию вместе с доном' : 'Отметьте мафию'}: ${marked.length} из ${need}.`
+      : step === 'donMeet'
+        ? 'Кто из мафии дон?'
+        : 'Кто шериф?';
+  return {
+    ...base,
+    picker: {
+      label,
+      max: need,
+      can,
+      selected: marked,
+      onPick: (n) => {
+        // В договорку снимаем отметку с любого чёрного, на остальных шагах — только с отмеченной роли.
+        const on = step === 'mafiaMeet' ? teamOf(seatOf(state, n)) === 'black' : seatOf(state, n).role === role;
+        dispatch({ type: 'setRole', seat: n, role: on ? unmark : role });
+      },
+      tableSelects: true,
+    },
+    primary: {
+      ...next(),
+      label: done ? 'Дальше' : step === 'mafiaMeet' ? `Отмечено ${marked.length} из ${need}` : `Отметьте ${ROLE_NAMES[role].toLowerCase()}а`,
+      disabled: !done,
+    },
+  };
 }
 
 function CandidatesLine({ state, dispatch }: { state: GameState; dispatch: (e: GameEvent) => boolean }) {

@@ -11,8 +11,6 @@ import {
 interface Props {
   players: number;
   composition: Composition;
-  /** Сколько ролей уже раздано в рассадке. */
-  assigned: Composition;
   /** Сколько мест с указанным ником. */
   filled: number;
   onPlayers: (n: number) => void;
@@ -32,8 +30,8 @@ const gen = (n: number, one: string, many: string) => `${n} ${n % 10 === 1 && n 
 const sameComposition = (a: Composition, b: Composition) =>
   a.civilian === b.civilian && a.sheriff === b.sheriff && a.mafia === b.mafia && a.don === b.don;
 
-/** Число игроков, состав ролей и сколько уже роздано — в одной строке подписей. */
-export function CompositionEditor({ players, composition, assigned, filled, onPlayers, onComposition }: Props) {
+/** Число игроков и состав ролей. Сами роли ведущий отмечает в Ночь 0. */
+export function CompositionEditor({ players, composition, filled, onPlayers, onComposition }: Props) {
   const reds = compositionReds(composition);
   const blacks = compositionBlacks(composition);
   const total = reds + blacks;
@@ -75,16 +73,11 @@ export function CompositionEditor({ players, composition, assigned, filled, onPl
 
         {ROLES.map(({ role, label, max, team }) => {
           const need = composition[role];
-          const have = assigned[role];
-          const state = need === 0 && have === 0 ? 'is-off' : have === need ? 'is-ok' : 'is-bad';
           return (
             <div key={role} className="field">
               <div className="field-label">
                 <i className={`dot ${team === 'red' ? 'dot-red' : 'dot-black'}`} />
                 {label}
-                <span className={`field-count ${state}`} title="Роздано в рассадке из нужных по составу">
-                  {have}/{need}
-                </span>
               </div>
               <div className="ctl-group">
                 <button

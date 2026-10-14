@@ -90,7 +90,11 @@ export interface PlayerRef {
 
 export interface SeatSetup {
   player: PlayerRef;
-  role: Role;
+  /**
+   * Роль, если она известна до начала игры (старые партии).
+   * Обычно не указывается: ведущий отмечает роли в Ночь 0, когда игроки просыпаются.
+   */
+  role?: Role;
 }
 
 export interface GameSetup {
@@ -106,6 +110,7 @@ export type SeatStatus = 'alive' | 'killed' | 'voted' | 'removed';
 export interface SeatState {
   seat: number;
   player: PlayerRef;
+  /** До отметки в Ночь 0 у всех стоит «мирный»: неотмеченные игроки им и остаются. */
   role: Role;
   status: SeatStatus;
   fouls: number;
@@ -113,7 +118,8 @@ export interface SeatState {
 }
 
 export type NightStep = 'shoot' | 'donCheck' | 'sheriffCheck';
-export type Night0Step = 'mafiaMeet' | 'donMeet' | 'sheriffMeet';
+/** deal — ведущий раздаёт карты, игроки спят. На остальных шагах ведущий отмечает проснувшихся. */
+export type Night0Step = 'deal' | 'mafiaMeet' | 'donMeet' | 'sheriffMeet';
 
 export type Phase =
   | { kind: 'night0'; step: Night0Step }
@@ -229,6 +235,8 @@ export interface GameState {
 /** Действия ведущего. Журнал этих событий полностью определяет состояние игры. */
 export type GameEvent =
   | { type: 'advance' }
+  /** Ночь 0: ведущий отмечает роль проснувшегося игрока. Какие роли можно ставить, зависит от шага. */
+  | { type: 'setRole'; seat: number; role: Role }
   | { type: 'nominate'; target: number }
   /** Снять ошибочное выставление: во время речей или до ввода голосов основного голосования. */
   | { type: 'cancelNomination'; target: number }

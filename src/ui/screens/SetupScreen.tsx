@@ -3,15 +3,12 @@ import {
   FIIM_REGULATION,
   MAX_SEATS,
   MIN_SEATS,
-  ROLE_NAMES,
-  ROLE_TEAM,
   SEAT_COUNT,
   compositionFor,
   validateComposition,
   validateSetup,
   type Composition,
   type GameSetup,
-  type Role,
   type Timings,
 } from '../../engine';
 import { KEYS, kvGet, kvSet } from '../../storage/db';
@@ -23,15 +20,12 @@ interface Props {
   onStart: (setup: GameSetup) => void | Promise<void>;
 }
 
+// Ролей в рассадке нет: игроки узнают их в Ночь 0, тогда же ведущий их и отмечает.
 interface Row {
   nickname: string;
-  role: Role;
 }
 
-const ROLE_ORDER: Role[] = ['civilian', 'sheriff', 'mafia', 'don'];
-const ROLE_SHORT: Record<Role, string> = { civilian: 'Мир', sheriff: 'Шер', mafia: 'Маф', don: 'Дон' };
-
-const emptyRows = (n: number): Row[] => Array.from({ length: n }, () => ({ nickname: '', role: 'civilian' }));
+const emptyRows = (n: number): Row[] => Array.from({ length: n }, () => ({ nickname: '' }));
 
 function shuffle<T>(items: T[]): T[] {
   const a = [...items];
@@ -40,11 +34,6 @@ function shuffle<T>(items: T[]): T[] {
     [a[i], a[j]] = [a[j]!, a[i]!];
   }
   return a;
-}
-
-function randomRoles(composition: Composition): Role[] {
-  const pool = ROLE_ORDER.flatMap((r) => Array<Role>(composition[r]).fill(r));
-  return shuffle(pool);
 }
 
 export function SetupScreen({ onBack, onStart }: Props) {
@@ -64,7 +53,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
       kvGet<Partial<Timings>>(KEYS.lastTimings),
     ]).then(([lineup, names, savedComposition, savedTimings]) => {
       if (lineup && lineup.length >= MIN_SEATS && lineup.length <= MAX_SEATS) {
-        setRows(lineup.map((nickname) => ({ nickname, role: 'civilian' })));
+        setRows(lineup.map((nickname) => ({ nickname })));
         const fits = savedComposition && validateComposition(savedComposition, lineup.length).length === 0;
         setComposition(fits ? savedComposition : compositionFor(lineup.length));
       }
@@ -73,10 +62,10 @@ export function SetupScreen({ onBack, onStart }: Props) {
     });
   }, []);
 
-  /** Меняет число мест: ники сохраняются, роли сбрасываются, состав — по умолчанию для этого стола. */
+  /** Меняет число мест: ники сохраняются, состав — по умолчанию для этого стола. */
   const changePlayers = (n: number) => {
     if (n === players) return;
-    setRows((prev) => Array.from({ length: n }, (_, i) => ({ nickname: prev[i]?.nickname ?? '', role: 'civilian' })));
+    setRows((prev) => Array.from({ length: n }, (_, i) => ({ nickname: prev[i]?.nickname ?? '' })));
     setComposition(compositionFor(n));
   };
 
@@ -84,7 +73,7 @@ export function SetupScreen({ onBack, onStart }: Props) {
     () => ({
       regulation: { ...FIIM_REGULATION, timings },
       composition,
-      seats: rows.map((r) => ({ player: { nickname: r.nickname.trim() }, role: r.role })),
+      seats: rows.map((r) => ({ player: { nickname: r.nickname.trim() } })),
     }),
     [rows, timings, composition],
   );
@@ -96,33 +85,20 @@ export function SetupScreen({ onBack, onStart }: Props) {
     return list;
   }, [setup, rows]);
 
-  const compositionValid = validateComposition(composition, players).length === 0;
-
   // Незаполненные места склеиваем в одну строку, чтобы список ошибок не рос с каждым местом.
-  // Однотипные ошибки склеиваем по одной строке, чтобы список не рос с каждым местом и ролью.
   const shownErrors = useMemo(() => {
     const empty: string[] = [];
-    const roles: string[] = [];
     const rest: string[] = [];
     for (const e of errors) {
       const seat = /^Место №(\d+): не указан игрок\.$/.exec(e);
-      const role = /^Роль «(.+)»: нужно (\d+), сейчас (\d+)\.$/.exec(e);
       if (seat) empty.push(seat[1]!);
-      else if (role) roles.push(`${role[1]!.toLowerCase()} ${role[3]}/${role[2]}`);
       else rest.push(e);
     }
-    if (roles.length) rest.push(`Роли розданы не по составу: ${roles.join(', ')}.`);
     if (empty.length) {
       rest.push(empty.length === 1 ? `Не указан игрок на месте №${empty[0]}.` : `Не указаны игроки на местах ${empty.join(', ')}.`);
     }
     return rest;
   }, [errors]);
-
-  const counts = useMemo(() => {
-    const c: Record<Role, number> = { civilian: 0, sheriff: 0, mafia: 0, don: 0 };
-    rows.forEach((r) => (c[r.role] += 1));
-    return c;
-  }, [rows]);
 
   const update = (i: number, patch: Partial<Row>) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -152,25 +128,12 @@ export function SetupScreen({ onBack, onStart }: Props) {
         <div className="spacer" />
         <button
           className="btn"
-          disabled={!compositionValid}
-          onClick={() => {
-            const roles = randomRoles(composition);
-            setRows((prev) => prev.map((r, i) => ({ ...r, role: roles[i]! })));
-          }}
-        >
-          Случайные роли
-        </button>
-        <button
-          className="btn"
           onClick={() => {
             const names = shuffle(rows.map((r) => r.nickname));
             setRows((prev) => prev.map((r, i) => ({ ...r, nickname: names[i]! })));
           }}
         >
           Перемешать места
-        </button>
-        <button className="btn" onClick={() => setRows((prev) => prev.map((r) => ({ ...r, role: 'civilian' })))}>
-          Сбросить роли
         </button>
         <button className="btn btn-ghost" onClick={() => setRows(emptyRows(players))}>
           Очистить
@@ -180,7 +143,6 @@ export function SetupScreen({ onBack, onStart }: Props) {
       <CompositionEditor
         players={players}
         composition={composition}
-        assigned={counts}
         filled={rows.filter((r) => r.nickname.trim()).length}
         onPlayers={changePlayers}
         onComposition={setComposition}
@@ -214,22 +176,6 @@ export function SetupScreen({ onBack, onStart }: Props) {
                 if (i === inputs.length - 1) e.currentTarget.blur();
               }}
             />
-            <div className="role-picker" role="radiogroup" aria-label={`Роль места ${i + 1}`}>
-              {ROLE_ORDER.map((r) => (
-                <button
-                  key={r}
-                  role="radio"
-                  aria-checked={row.role === r}
-                  data-team={ROLE_TEAM[r]}
-                  className={`role-opt ${row.role === r ? 'is-on' : ''}`}
-                  onClick={() => update(i, { role: r })}
-                  disabled={composition[r] === 0 && row.role !== r}
-                  title={composition[r] === 0 ? `${ROLE_NAMES[r]}: нет в составе` : ROLE_NAMES[r]}
-                >
-                  {ROLE_SHORT[r]}
-                </button>
-              ))}
-            </div>
           </div>
         ))}
       </div>

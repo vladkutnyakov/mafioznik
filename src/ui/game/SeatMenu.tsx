@@ -42,7 +42,7 @@ export function SeatMenu({ state, seat, hideRoles, dispatch, onClose }: Props) {
               {s.player.nickname}
             </div>
             <div className="muted">
-              {!hideRoles && `${ROLE_NAMES[s.role]} · `}
+              {!hideRoles && !(p.kind === 'night0' && s.role === 'civilian') && `${ROLE_NAMES[s.role]} · `}
               фолов: {s.fouls}
               {s.status !== 'alive' && ` · ${STATUS[s.status]}`}
             </div>

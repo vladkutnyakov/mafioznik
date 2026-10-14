@@ -22,6 +22,7 @@ import {
   type GameResult,
   type GameSetup,
   type GameState,
+  type Night0Step,
   type Phase,
   type QueueItem,
   type Role,
@@ -49,7 +50,10 @@ export function validateSetup(setup: GameSetup): string[] {
   const composition = setup.composition ?? ROLE_COUNTS;
   const compositionErrors = validateComposition(composition, setup.seats.length);
   errors.push(...compositionErrors);
-  if (compositionErrors.length === 0) {
+  const withRole = setup.seats.filter((s) => s.role !== undefined).length;
+  if (withRole > 0 && withRole < setup.seats.length) {
+    errors.push('Роли указаны не у всех мест: укажите все или ни одной.');
+  } else if (withRole > 0 && compositionErrors.length === 0) {
     for (const role of Object.keys(composition) as Role[]) {
       const n = setup.seats.filter((s) => s.role === role).length;
       if (n !== composition[role]) {
@@ -66,26 +70,33 @@ export function validateSetup(setup: GameSetup): string[] {
   return errors;
 }
 
+/** Роли розданы заранее (старые партии): Ночь 0 начинается сразу с договорки. */
+const rolesPreassigned = (setup: GameSetup) => setup.seats.every((s) => s.role !== undefined);
+
 export function createGame(setup: GameSetup): GameState {
   const errors = validateSetup(setup);
   if (errors.length) fail(errors.join(' '));
+  const night0: QueueItem[] = [
+    { kind: 'night0', step: 'mafiaMeet' },
+    { kind: 'night0', step: 'donMeet' },
+    { kind: 'night0', step: 'sheriffMeet' },
+  ];
+  const [first, ...rest]: QueueItem[] = rolesPreassigned(setup)
+    ? night0
+    : [{ kind: 'night0', step: 'deal' }, ...night0];
   return {
     regulation: structuredClone(setup.regulation),
     composition: { ...(setup.composition ?? ROLE_COUNTS) },
     seats: setup.seats.map((s, i) => ({
       seat: i + 1,
       player: { ...s.player },
-      role: s.role,
+      role: s.role ?? 'civilian',
       status: 'alive',
       fouls: 0,
       skipNextSpeech: false,
     })),
-    phase: { kind: 'night0', step: 'mafiaMeet' },
-    queue: [
-      { kind: 'night0', step: 'donMeet' },
-      { kind: 'night0', step: 'sheriffMeet' },
-      { kind: 'startDay' },
-    ],
+    phase: first as Phase,
+    queue: [...rest, { kind: 'startDay' }],
     day: 0,
     dayOpener: null,
     dayRemoval: false,
@@ -113,6 +124,9 @@ export function applyEvent(prev: GameState, event: GameEvent): GameState {
   switch (event.type) {
     case 'advance':
       onAdvance(s);
+      break;
+    case 'setRole':
+      onSetRole(s, event.seat, event.role);
       break;
     case 'nominate':
       onNominate(s, event.target);
@@ -211,7 +225,63 @@ function onAdvance(s: GameState): void {
   if (p.kind === 'voting') fail('Сначала введите результаты голосования.');
   if (p.kind === 'liftAllVote') fail('Сначала введите результат голосования за подъём всех.');
   if (p.kind === 'night' && p.step === 'shoot') fail('Сначала введите результат стрельбы.');
+  if (p.kind === 'night0') checkNight0Marks(s, p.step);
   popNext(s);
+}
+
+/** Перед следующим шагом Ночи 0 все проснувшиеся должны быть отмечены. */
+function checkNight0Marks(s: GameState, step: Night0Step): void {
+  const c = s.composition;
+  const count = (roles: Role[]) => s.seats.filter((x) => roles.includes(x.role)).length;
+  if (step === 'mafiaMeet') {
+    const need = c.mafia + c.don;
+    const have = count(['mafia', 'don']);
+    if (have !== need) fail(`Отметьте всех чёрных игроков: нужно ${need}, отмечено ${have}.`);
+  } else if (step === 'donMeet') {
+    if (count(['don']) !== c.don) fail('Отметьте дона.');
+  } else if (step === 'sheriffMeet') {
+    if (count(['sheriff']) !== c.sheriff) fail('Отметьте шерифа.');
+  }
+}
+
+/** Какие роли ведущий отмечает на шаге Ночи 0. Первая — роль проснувшегося, вторая — снятие отметки. */
+export const NIGHT0_MARKS: Record<Night0Step, [Role, Role] | null> = {
+  deal: null,
+  mafiaMeet: ['mafia', 'civilian'],
+  donMeet: ['don', 'mafia'],
+  sheriffMeet: ['sheriff', 'civilian'],
+};
+
+function onSetRole(s: GameState, seatNumber: number, role: Role): void {
+  const p = s.phase;
+  if (p.kind !== 'night0') fail('Роли отмечаются только в Ночь 0.');
+  const marks = NIGHT0_MARKS[p.step];
+  if (!marks) fail('Карты ещё раздаются: роли отмечаются, когда игроки просыпаются.');
+  if (!marks.includes(role)) fail(`Сейчас нельзя отметить роль «${ROLE_NAMES[role]}».`);
+  checkSeatNumber(s, seatNumber);
+  const seat = seatOf(s, seatNumber);
+  const [mark, unmark] = marks;
+  if (seat.role === role) return;
+
+  if (p.step === 'mafiaMeet') {
+    // Отметка снимается и с дона: он просыпается вместе с мафией.
+    if (role === 'mafia') {
+      const need = s.composition.mafia + s.composition.don;
+      const have = s.seats.filter((x) => teamOf(x) === 'black').length;
+      if (have >= need) fail(`Чёрных в составе ${need}: все уже отмечены. Снимите лишнюю отметку.`);
+    }
+    seat.role = role;
+    return;
+  }
+  // Дон выбирается среди чёрных, шериф — среди красных. Прежняя отметка переходит на новое место.
+  const team = p.step === 'donMeet' ? 'black' : 'red';
+  if (teamOf(seat) !== team) {
+    fail(p.step === 'donMeet' ? `Игрок №${seatNumber} не отмечен как мафия.` : `Игрок №${seatNumber} отмечен как мафия.`);
+  }
+  if (role === mark) {
+    for (const x of s.seats) if (x.role === mark) x.role = unmark;
+  }
+  seat.role = role;
 }
 
 function onNominate(s: GameState, target: number): void {

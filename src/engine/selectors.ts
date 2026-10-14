@@ -64,9 +64,9 @@ export function actsTonight(s: GameState, seat: SeatState): boolean {
   return seat.status === 'killed' && currentNight(s)?.kill === seat.seat;
 }
 
-/** Есть ли такая роль в составе этой игры вообще (независимо от того, жив ли игрок). */
+/** Есть ли такая роль в составе этой игры вообще (независимо от того, жив ли игрок и отмечен ли он). */
 export function gameHasRole(s: GameState, role: Role): boolean {
-  return s.seats.some((x) => x.role === role);
+  return s.composition[role] > 0;
 }
 
 export function seatWithRole(s: GameState, role: Role): SeatState | undefined {
@@ -116,6 +116,7 @@ function rawDuration(phase: Phase, reg: Regulation): number | null {
   const t = reg.timings;
   switch (phase.kind) {
     case 'night0':
+      if (phase.step === 'deal') return null;
       return phase.step === 'mafiaMeet' ? t.mafiaMeet : phase.step === 'donMeet' ? t.donMeet : t.sheriffMeet;
     case 'speech':
       return phase.shortened ? t.shortSpeech : t.speech;

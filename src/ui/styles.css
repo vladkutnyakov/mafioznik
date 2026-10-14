@@ -297,35 +297,6 @@ h3 {
   outline-offset: -1px;
 }
 
-.role-picker {
-  display: flex;
-  gap: 4px;
-  flex: none;
-}
-
-.role-opt {
-  height: 48px;
-  min-width: 48px;
-  padding: 0 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.role-opt.is-on[data-team='red'] {
-  background: var(--red-team);
-  border-color: var(--red-team);
-  color: #fff;
-}
-
-.role-opt.is-on[data-team='black'] {
-  background: var(--black-team);
-  border-color: var(--black-team-border);
-  color: #fff;
-}
-
 .counters {
   display: flex;
   gap: 8px;
@@ -634,11 +605,6 @@ button.ctl:hover:not(:disabled):not(.is-on) {
   min-height: 44px;
 }
 
-.role-opt:disabled {
-  opacity: 0.25;
-  cursor: default;
-}
-
 .counter.is-off {
   opacity: 0.45;
   border-color: var(--border);
@@ -734,8 +700,7 @@ button.ctl:hover:not(:disabled):not(.is-on) {
   font-size: 17px;
 }
 
-.setup .nick-input,
-.setup .role-opt {
+.setup .nick-input {
   height: 42px;
 }
 
@@ -793,8 +758,7 @@ button.ctl:hover:not(:disabled):not(.is-on) {
   .setup .setup-row {
     padding: 4px 8px;
   }
-  .setup .nick-input,
-  .setup .role-opt {
+  .setup .nick-input {
     height: 38px;
   }
   .setup .seat-num {
@@ -824,8 +788,7 @@ button.ctl:hover:not(:disabled):not(.is-on) {
   .setup .setup-row {
     padding: 4px 8px;
   }
-  .setup .nick-input,
-  .setup .role-opt {
+  .setup .nick-input {
     height: 38px;
   }
   .setup .seat-num {

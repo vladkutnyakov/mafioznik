@@ -42,6 +42,11 @@ function describeBase(s: GameState): PhaseDescription {
   const night = `Ночь ${s.day}`;
   switch (p.kind) {
     case 'night0':
+      if (p.step === 'deal')
+        return {
+          title: 'Ночь 0 · Раздача карт',
+          prompt: 'Наступает ночь. Ведущий подходит к каждому игроку: тот смотрит карту и возвращает её.',
+        };
       if (p.step === 'mafiaMeet')
         return { title: 'Ночь 0 · Договорка', prompt: 'Наступает ночь. Мафия просыпается и договаривается.' };
       if (p.step === 'donMeet')
