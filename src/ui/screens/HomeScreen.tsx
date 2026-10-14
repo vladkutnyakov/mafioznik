@@ -11,6 +11,7 @@ interface Props {
   onNew: () => void;
   onMusic: () => void;
   onSettings: () => void;
+  onHistory: () => void;
   onResume: (session: GameSession) => void;
   onDiscard: () => void;
 }
@@ -22,7 +23,7 @@ const FOLDER_LABEL: Record<FolderState['kind'], (name: string) => string> = {
   ready: (name) => name,
 };
 
-export function HomeScreen({ active, historyCount, folder, onNew, onMusic, onSettings, onResume, onDiscard }: Props) {
+export function HomeScreen({ active, historyCount, folder, onNew, onMusic, onSettings, onHistory, onResume, onDiscard }: Props) {
   const [armDiscard, setArmDiscard] = useState(false);
   const { trackCount } = useMusic();
 
@@ -77,6 +78,11 @@ export function HomeScreen({ active, historyCount, folder, onNew, onMusic, onSet
           Новая игра
         </button>
 
+        <button className="btn btn-block home-link" disabled={!historyCount} onClick={onHistory}>
+          <span>История и статистика</span>
+          <span className="muted">{historyCount ? `${historyCount} шт.` : 'игр пока нет'}</span>
+        </button>
+
         <button className="btn btn-block home-link" onClick={onMusic}>
           <span>Музыка для ночи</span>
           <span className="muted">{trackCount ? `${trackCount} шт.` : 'не загружена'}</span>
@@ -86,10 +92,6 @@ export function HomeScreen({ active, historyCount, folder, onNew, onMusic, onSet
           <span>Папка с историей игр</span>
           <span className={folder.kind === 'locked' ? '' : 'muted'}>{FOLDER_LABEL[folder.kind]('name' in folder ? folder.name : '')}</span>
         </button>
-
-        <div className="muted" style={{ fontSize: 14, textAlign: 'center' }}>
-          Сохранённых игр: {historyCount}
-        </div>
       </div>
     </div>
   );

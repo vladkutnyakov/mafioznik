@@ -17,9 +17,10 @@ import {
 
 interface Props {
   state: GameState;
-  dispatch: (event: GameEvent) => boolean;
-  onSave: () => void;
-  onShowTable: () => void;
+  /** Без dispatch итоги только для просмотра: сохранённая игра из истории. */
+  dispatch?: (event: GameEvent) => boolean;
+  onSave?: () => void;
+  onShowTable?: () => void;
 }
 
 const fmt = (x: number) => (x === 0 ? '0' : x.toFixed(2).replace(/\.?0+$/, '').replace('.', ','));
@@ -62,12 +63,16 @@ export function ResultsView({ state, dispatch, onSave, onShowTable }: Props) {
           {free > 0 && <div className="results-free">Забрано и не отдано доп. баллов: {free}</div>}
         </div>
         <div className="spacer" />
-        <button className="btn" onClick={onShowTable}>
-          Показать стол
-        </button>
-        <button className="btn btn-primary btn-lg" onClick={onSave}>
-          Сохранить игру
-        </button>
+        {onShowTable && (
+          <button className="btn" onClick={onShowTable}>
+            Показать стол
+          </button>
+        )}
+        {onSave && (
+          <button className="btn btn-primary btn-lg" onClick={onSave}>
+            Сохранить игру
+          </button>
+        )}
       </div>
 
       {/* Таблица баллов и ход игры рядом: таблица всегда на виду, длинный ход игры прокручивается в своей колонке. */}
@@ -93,7 +98,7 @@ interface ScoreTableProps {
   state: GameState;
   rules: ExtraRules;
   free: number;
-  dispatch: (event: GameEvent) => boolean;
+  dispatch?: (event: GameEvent) => boolean;
 }
 
 function ScoreTable({ state, rules, free, dispatch }: ScoreTableProps) {
@@ -103,7 +108,7 @@ function ScoreTable({ state, rules, free, dispatch }: ScoreTableProps) {
 
   const setExtra = (seat: number, value: number) => {
     const clamped = Math.min(rules.max, Math.max(rules.min, Math.round(value * 100) / 100));
-    dispatch({ type: 'setExtraPoints', seat, value: clamped });
+    dispatch?.({ type: 'setExtraPoints', seat, value: clamped });
   };
 
   return (
@@ -137,26 +142,30 @@ function ScoreTable({ state, rules, free, dispatch }: ScoreTableProps) {
             <td>{s.bestMove ? signed(s.bestMove) : '—'}</td>
             <td className={s.penalty ? 'penalty' : ''}>{s.penalty ? `−${fmt(s.penalty)}` : '—'}</td>
             <td>
-              <div className="stepper">
-                <button
-                  className="icon-btn"
-                  disabled={s.extra <= rules.min}
-                  onClick={() => setExtra(s.seat, s.extra - rules.step)}
-                  aria-label="Меньше"
-                >
-                  −
-                </button>
-                <span className="stepper-value">{shown(s.extra)}</span>
-                <button
-                  className="icon-btn"
-                  // Когда сумма баллов постоянна, прибавить можно только забранный у кого-то балл.
-                  disabled={s.extra >= rules.max || (rules.total !== null && free <= 0)}
-                  onClick={() => setExtra(s.seat, s.extra + rules.step)}
-                  aria-label="Больше"
-                >
-                  +
-                </button>
-              </div>
+              {!dispatch ? (
+                shown(s.extra)
+              ) : (
+                <div className="stepper">
+                  <button
+                    className="icon-btn"
+                    disabled={s.extra <= rules.min}
+                    onClick={() => setExtra(s.seat, s.extra - rules.step)}
+                    aria-label="Меньше"
+                  >
+                    −
+                  </button>
+                  <span className="stepper-value">{shown(s.extra)}</span>
+                  <button
+                    className="icon-btn"
+                    // Когда сумма баллов постоянна, прибавить можно только забранный у кого-то балл.
+                    disabled={s.extra >= rules.max || (rules.total !== null && free <= 0)}
+                    onClick={() => setExtra(s.seat, s.extra + rules.step)}
+                    aria-label="Больше"
+                  >
+                    +
+                  </button>
+                </div>
+              )}
             </td>
             <td className="total">{fmt(s.total)}</td>
           </tr>

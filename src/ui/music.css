@@ -294,3 +294,177 @@ label.btn.is-busy {
   font-size: 13px;
   overflow-x: auto;
 }
+
+/* ---------- история и статистика ---------- */
+
+.history {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history .setup-head {
+  margin-bottom: 0;
+}
+
+.history .results {
+  padding: 0;
+  overflow: visible;
+}
+
+.history-controls {
+  gap: 10px;
+}
+
+.history-filter {
+  min-height: 50px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  max-width: 100%;
+}
+
+.history-chip {
+  min-height: 42px;
+}
+
+.history-scroll {
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-table th {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.history-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.history-table th.is-sorted {
+  color: var(--text);
+}
+
+.history-table th.is-sorted::after {
+  content: ' ↓';
+}
+
+.history-table td {
+  background: var(--surface);
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
+.history-table td:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.history-table td:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.history-table tbody tr {
+  cursor: pointer;
+}
+
+.history-table tbody tr:hover td {
+  background: var(--surface-2);
+}
+
+.history-table .nick {
+  font-weight: 600;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-table .strong {
+  font-weight: 800;
+}
+
+.history-table .penalty {
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.history-hint {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.history-games {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-game {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  opacity: 1;
+  border-left-width: 4px;
+}
+
+.history-game[data-team='red'] {
+  border-left-color: var(--red-team);
+}
+
+.history-game[data-team='black'] {
+  border-left-color: var(--black-team-border);
+}
+
+.history-game:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.history-game:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.history-game-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-game-role {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.history-game-winner {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .history-game {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .history-game-main {
+    flex-basis: 100%;
+  }
+}

@@ -10,6 +10,7 @@ import { unlockAudio } from './ui/audio/sound';
 import { music } from './music/player';
 import { MusicScreen } from './ui/screens/MusicScreen';
 import { SettingsScreen } from './ui/screens/SettingsScreen';
+import { HistoryScreen } from './ui/screens/HistoryScreen';
 
 type Screen =
   | { name: 'loading' }
@@ -17,6 +18,7 @@ type Screen =
   | { name: 'setup' }
   | { name: 'music' }
   | { name: 'settings' }
+  | { name: 'history' }
   | { name: 'game'; session: GameSession };
 
 export function App() {
@@ -88,6 +90,7 @@ export function App() {
           onNew={() => setScreen({ name: 'setup' })}
           onMusic={() => setScreen({ name: 'music' })}
           onSettings={() => setScreen({ name: 'settings' })}
+          onHistory={() => setScreen({ name: 'history' })}
           onResume={(session) => setScreen({ name: 'game', session })}
           onDiscard={discardGame}
         />
@@ -96,6 +99,8 @@ export function App() {
       return <MusicScreen onBack={() => setScreen({ name: 'home' })} />;
     case 'settings':
       return <SettingsScreen onBack={() => void refresh().then(() => setScreen({ name: 'home' }))} />;
+    case 'history':
+      return <HistoryScreen onBack={() => setScreen({ name: 'home' })} />;
     case 'setup':
       return <SetupScreen onBack={() => setScreen({ name: 'home' })} onStart={startGame} />;
     case 'game':
